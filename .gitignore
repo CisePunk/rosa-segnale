@@ -64,10 +64,10 @@ pnpm-debug.log*
 Thumbs.db
 
 # Temporary files
-screenshots/
-private/
-local/
-tmp/
+/screenshots/
+/private/
+/local/
+/tmp/
 *.tmp
 *.temp
 *.swp
