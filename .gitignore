@@ -35,9 +35,7 @@ ENV/
 audit_batch_*.txt
 logs/
 reports/*
-!reports/.gitkeep
 backend/reports/*
-!backend/reports/.gitkeep
 
 # SQLite / local databases
 *.db
