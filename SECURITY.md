@@ -4,6 +4,8 @@ Rosa Segnale è un prototipo didattico e non deve essere usato in produzione sen
 
 Il progetto tratta scenari potenzialmente sensibili. Per questo motivo deve essere eseguito, testato e dimostrato solo con dati fittizi, simulati o anonimizzati.
 
+Il threat model del progetto è documentato in [docs/threat-model.md](docs/threat-model.md).
+
 ## Segnalazione vulnerabilità
 
 Per segnalare vulnerabilità o problemi di sicurezza, usare preferibilmente il sistema di segnalazione privata di GitHub, se abilitato nel repository, oppure contattare direttamente il maintainer del progetto.
@@ -22,9 +24,9 @@ Non inserire mai nel repository:
 - dati personali o sanitari;
 - esempi con minori reali o persone riconoscibili.
 
-## Ambito del prototipo
+## Ambito tecnico
 
-Il prototipo include alcune misure minime utili per una demo locale, come separazione tra vista pubblica e area interna, fallback locale, configurazione tramite `.env` e Basic Auth opzionale sulle route interne.
+Il progetto include alcune misure minime utili per una demo locale, come separazione tra vista pubblica e area interna, fallback locale, configurazione tramite `.env` e Basic Auth opzionale sulle route interne.
 
 Queste misure non sono sufficienti per un uso reale o pubblico.
 
@@ -32,6 +34,7 @@ Queste misure non sono sufficienti per un uso reale o pubblico.
 
 Prima di rendere il servizio accessibile al pubblico servono almeno:
 
+- quick exit e cautele lato dispositivo per persone che usano telefoni condivisi o sorvegliati;
 - autenticazione robusta per l'area interna;
 - autorizzazioni basate su ruoli;
 - gestione sicura delle sessioni;
@@ -49,6 +52,7 @@ Prima di rendere il servizio accessibile al pubblico servono almeno:
 - controllo delle vulnerabilità note nelle librerie;
 - protezione da prompt injection e abuso del provider AI;
 - policy su quali dati possono essere inviati al provider AI;
+- revisione della knowledge base e workflow di modifica controllato;
 - separazione tra ambiente di sviluppo, test e produzione;
 - test di sicurezza prima della pubblicazione.
 
@@ -72,7 +76,7 @@ Prima di un uso reale è necessario definire controlli specifici per:
 
 L'area interna non deve essere esposta pubblicamente senza autenticazione robusta, autorizzazioni granulari, audit accessi e protezione delle route.
 
-La Basic Auth opzionale prevista nel prototipo serve solo per una demo locale o controllata. Non deve essere considerata una misura sufficiente per un servizio reale.
+La Basic Auth opzionale serve solo per una demo locale o controllata. Non deve essere considerata una misura sufficiente per un servizio reale.
 
 ## Dati locali
 

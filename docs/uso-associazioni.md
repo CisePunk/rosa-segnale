@@ -4,6 +4,11 @@ Rosa Segnale è un prototipo didattico rilasciato con licenza MIT.
 
 Associazioni, enti del terzo settore, sportelli di ascolto, centri antiviolenza e progetti civici possono usare, copiare, adattare e integrare gratuitamente il codice nei propri siti o strumenti interni, nel rispetto della licenza presente nel file `LICENSE`.
 
+Il metodo di sviluppo e il threat model sono documentati in:
+
+- [workflow-sviluppo.md](workflow-sviluppo.md)
+- [threat-model.md](threat-model.md)
+
 ## Avviso importante
 
 Rosa Segnale non è un servizio pronto per la produzione e non deve essere usato così com'è per gestire casi reali.
@@ -22,6 +27,7 @@ Prima di qualunque uso reale sono necessari:
 
 - revisione legale e privacy;
 - valutazione di sicurezza applicativa;
+- valutazione del rischio per persone che usano dispositivi condivisi o sorvegliati;
 - gestione professionale dei dati sensibili;
 - consenso informato e informative adeguate;
 - integrazione con personale formato;
@@ -45,6 +51,7 @@ Per usare Rosa Segnale in un sito o servizio realmente accessibile al pubblico, 
 - audit log non modificabile;
 - backup, monitoraggio e alerting;
 - revisione legale, psicologica, privacy e sicurezza;
+- quick exit, gestione cache/browser e cautele lato dispositivo;
 - validazione dei riferimenti territoriali;
 - procedure operative per emergenze, minori, autolesionismo e casi sanitari;
 - test di sicurezza prima della pubblicazione;

@@ -2,7 +2,9 @@
 
 Rosa Segnale tratta un tema sensibile e deve essere usato in demo solo con dati fittizi, simulati o anonimizzati.
 
-Questo documento non è un'informativa privacy completa. È una nota di cautela per l'uso del prototipo in ambiente didattico, locale o dimostrativo.
+Questo documento non è un'informativa privacy completa. È una nota di cautela per l'uso in ambiente didattico, locale o dimostrativo.
+
+Il modello dei rischi privacy e sicurezza è sintetizzato in [docs/threat-model.md](docs/threat-model.md).
 
 Non inserire nel sistema:
 
@@ -17,11 +19,11 @@ Non inserire nel sistema:
 - dettagli familiari, lavorativi o territoriali che possano ricondurre a persone reali;
 - qualunque contenuto che permetta di identificare direttamente o indirettamente una persona.
 
-## Dati trattati nel prototipo
+## Dati trattati
 
 Nel normale uso demo il sistema può trattare testi inseriti manualmente dall'utente, classificazioni orientative, risk score, percorsi suggeriti, timestamp, report e log tecnici.
 
-Il prototipo deve essere usato solo con scenari inventati o anonimizzati.
+Le prove devono essere svolte solo con scenari inventati o anonimizzati.
 
 Il database locale, i report generati, i log e gli eventuali file `.env` non devono essere pubblicati, condivisi o caricati su repository pubblici.
 
@@ -56,13 +58,14 @@ Prima di rendere il servizio accessibile al pubblico servono almeno:
 - tempi di retention e procedure di cancellazione;
 - gestione dei diritti degli interessati;
 - valutazione d'impatto sulla protezione dei dati, se necessaria;
+- valutazione privacy strutturata per dati ad alto rischio e possibile DPIA ai sensi dell'art. 35 GDPR;
 - revisione legale e operativa;
 - revisione tecnica di sicurezza;
 - procedure per casi urgenti, minori, autolesionismo, gravidanza, violenza, stalking e situazioni sanitarie;
 - policy chiara su accessi interni, ruoli, audit e tracciabilità;
 - verifica dei testi, dei flussi e dei messaggi generati dall'AI da parte di professionisti qualificati.
 
-## Limite del prototipo
+## Limite
 
 Rosa Segnale non è un servizio di emergenza, non è un centro antiviolenza, non fornisce consulenza medica, psicologica o legale e non sostituisce personale qualificato.
 

@@ -2,7 +2,7 @@
 
 ## Descrizione
 
-Portale prototipo di ascolto, primo orientamento e triage non diagnostico basato su Python, FastAPI, React, OpenAI e base di conoscenza interna.
+Portale di ascolto, primo orientamento e triage non diagnostico basato su Python, FastAPI, React, OpenAI e base di conoscenza interna.
 
 ## Origine del progetto
 
@@ -14,6 +14,12 @@ La struttura tecnica richiesta è stata mantenuta:
 - risposta generata con AI
 - report
 - tracciabilità
+
+L'idea è nata dall'esigenza di trasformare una traccia generica in qualcosa di più vicino a un contesto reale di ascolto e rischio. L'architettura, le scelte di flusso, la separazione tra vista pubblica e area interna, la mancata geolocalizzazione, i percorsi rapidi e le cautele sui dati sono decisioni progettuali umane, costruite prima della generazione del codice.
+
+## Workflow di sviluppo
+
+Il progetto è stato costruito con una pipeline human-in-the-loop: architettura umana, prompt mirati, generazione AI assistita, lettura e audit riga per riga, test manuali per scene, test automatici, cross-review multi-modello e revisione tecnica esterna. Le competenze maturate in quattro anni di lavoro con LLM e automazioni AI sono state applicate specificando contesto, vincoli, criteri di accettazione e casi limite per componenti circoscritti, refactoring, test, privacy, prompt injection, CVE, bias e instradamento delle emergenze. Idea, struttura, priorità di rischio e risultato finale restano responsabilità umana. Dettagli: [docs/workflow-sviluppo.md](docs/workflow-sviluppo.md).
 
 ## Avviso importante
 
@@ -41,7 +47,7 @@ Il codice non è pronto per la produzione reale senza ulteriori revisioni profes
 - gestione esplicita di gravidanza, minorenne come soggetto scrivente, isolamento sociale, armi, separazione recente
 - risposta dedicata a richieste di cancellazione della chat
 - riferimenti territoriali siciliani (mappatura 1522, rete D.i.Re.)
-- Telefono Amico Italia: 02 2327 2327, indicato dal sito ufficiale come attivo tutti i giorni dalle 9 alle 24 alla data di verifica del progetto
+- Telefono Amico Italia: 02 2327 2327, indicato dal sito ufficiale come attivo tutti i giorni dalle 9 alle 24 alla verifica del 10 giugno 2026
 - report aggregati
 - report settimanale automatico
 - follow-up operativo sui casi registrati
@@ -111,7 +117,7 @@ INTERNAL_AUTH_USERNAME=replace_with_internal_username
 INTERNAL_AUTH_PASSWORD=replace_with_internal_password
 ```
 
-Se le variabili non sono presenti, il prototipo resta aperto per la demo locale.
+Se le variabili non sono presenti, l'area interna resta aperta per la demo locale.
 
 ## Base di conoscenza interna
 
@@ -133,9 +139,9 @@ Undici fonti tematiche embedded nel backend, usate per il retrieval e per genera
 
 Il portale non usa la geolocalizzazione del browser, per scelta deliberata.
 
-La richiesta di geolocalizzazione del browser può essere visibile a chi guarda lo schermo, può lasciare tracce nelle impostazioni del dispositivo o del browser e non è necessaria per la logica del prototipo.
+La richiesta di geolocalizzazione del browser può essere visibile a chi guarda lo schermo, può lasciare tracce nelle impostazioni del dispositivo o del browser e non è necessaria per la logica applicativa.
 
-In caso di emergenza immediata, la persona viene indirizzata al 112. Dove supportato dal dispositivo, dalla rete e dalla centrale competente, i sistemi di emergenza possono usare tecnologie di localizzazione come AML (Advanced Mobile Location). Per l'orientamento ai servizi territoriali, il prototipo rimanda al 1522, che dispone di una mappatura aggiornata dei servizi antiviolenza.
+In caso di emergenza immediata, la persona viene indirizzata al 112. Dove supportato dal dispositivo, dalla rete e dalla centrale competente, i sistemi di emergenza possono usare tecnologie di localizzazione come AML (Advanced Mobile Location). Per l'orientamento ai servizi territoriali, il sistema rimanda al 1522, che dispone di una mappatura aggiornata dei servizi antiviolenza.
 
 ## Prova suggerita
 
@@ -227,14 +233,16 @@ Dettagli:
 
 - [LICENSE](LICENSE)
 - [docs/uso-associazioni.md](docs/uso-associazioni.md)
+- [docs/workflow-sviluppo.md](docs/workflow-sviluppo.md)
+- [docs/threat-model.md](docs/threat-model.md)
 - [SECURITY.md](SECURITY.md)
 - [PRIVACY.md](PRIVACY.md)
 
 ## Cosa manca per un uso reale
 
-Per trasformare Rosa Segnale da prototipo a servizio operativo servono ulteriori implementazioni, tra cui:
+Per trasformare Rosa Segnale in servizio operativo servono ulteriori implementazioni, tra cui:
 
-- autenticazione robusta con sessioni, ruoli granulari e audit accessi (il prototipo include Basic Auth opzionale sulle route interne, non sufficiente per produzione);
+- autenticazione robusta con sessioni, ruoli granulari e audit accessi (la Basic Auth opzionale sulle route interne non è sufficiente per produzione);
 - cifratura dei dati sensibili a riposo;
 - informative privacy, consenso, retention e procedure GDPR;
 - gestione sicura dei segreti e deploy HTTPS;
@@ -247,7 +255,7 @@ Per trasformare Rosa Segnale da prototipo a servizio operativo servono ulteriori
 - procedure supervisionate per pericolo imminente, minori, autolesionismo e casi sanitari;
 - test di sicurezza e revisione prima del deploy.
 
-Queste attività possono essere progettate e implementate su richiesta, adattando il prototipo alle esigenze reali dell'organizzazione che vuole utilizzarlo.
+Queste attività possono essere progettate e implementate su richiesta, adattando Rosa Segnale alle esigenze reali dell'organizzazione che vuole utilizzarlo.
 
 ## Presentazione
 
@@ -261,6 +269,8 @@ Un testo breve da leggere o adattare per spiegare il progetto si trova in:
 - health check OK
 - integrazione OpenAI configurabile tramite `.env` locale
 - fallback locale disponibile se la chiamata AI non riesce
-- 43 test automatici OK al momento della verifica (triage rules, chat policy, assistant provider, auth)
+- 43 test automatici OK alla verifica del 10 giugno 2026 (triage rules, chat policy, assistant provider, auth)
+- dipendenze verificate con `npm audit` e `pip-audit` al 9 giugno 2026, senza vulnerabilità note rilevate
+- revisione tecnica esterna qualificata completata
 - punto di ascolto AI funzionante
 - campo messaggio vuoto all'apertura, senza frase pre-compilata

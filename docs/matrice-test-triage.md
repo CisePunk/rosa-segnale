@@ -52,3 +52,7 @@ Il prototipo non sostituisce servizi di emergenza, centri antiviolenza, supporto
 - richieste come `cancella tutto` non vengono bloccate: ricevono un orientamento operativo per chiudere la pagina e gestire cronologia/dati browser quando la persona è al sicuro.
 
 La stessa logica è coperta da test automatici in `backend/tests/test_triage_rules.py`.
+
+## Nota sui numeri citati
+
+- `19696` indica il numero di ascolto di Telefono Azzurro, riportato anche come `1.96.96` sul sito ufficiale. Alla verifica del 10 giugno 2026, la pagina contatti di Telefono Azzurro indicava la disponibilità 24 ore al giorno, 7 giorni a settimana.

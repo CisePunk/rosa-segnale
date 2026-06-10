@@ -2,7 +2,9 @@
 
 Rosa Segnale è un prototipo didattico sviluppato come progetto finale Python e AI.
 
-L'idea è creare un portale con due livelli: una vista pubblica di ascolto e una vista interna per gestione, revisione e reportistica.
+L'idea nasce dall'esigenza di trasformare una traccia tecnica in un flusso più vicino a un contesto reale di ascolto: le richieste di aiuto non arrivano sempre in forma ordinata, possono essere brevi, ambigue o interrotte.
+
+Il portale ha due livelli: una vista pubblica di ascolto e una vista interna per gestione, revisione e reportistica.
 
 Nella vista Ascolto, la persona non vede dati tecnici, KPI, report o registri interni. Trova solo risorse rapide, come 112, 1522 e YouPol, insieme a un punto di ascolto AI.
 
@@ -15,6 +17,8 @@ Il registro interno parte vuoto e mostra solo le segnalazioni inserite. Ogni cas
 Dal punto di vista tecnico, il backend è sviluppato in Python con FastAPI, Pydantic e SQLite. Il frontend è realizzato con React e Vite. La parte AI usa OpenAI tramite provider configurabile, il modello predefinito gpt-4o-mini, una base di conoscenza interna, regole di sicurezza e fallback locale.
 
 Il backend genera automaticamente un report settimanale con KPI aggregati e permette di rigenerarlo anche manualmente.
+
+Il metodo di sviluppo è stato human-in-the-loop: progettazione umana, prompt mirati, generazione assistita, audit riga per riga, test automatici, test manuali per scene, cross-review multi-modello e revisione tecnica esterna. Le dipendenze sono state verificate anche con `npm audit` e `pip-audit`.
 
 Rosa Segnale non vuole sostituire servizi reali di emergenza, supporto medico, psicologico o legale. Per questo la vista pubblica contiene un avviso chiaro e il codice è presentato come prototipo didattico, non come servizio pronto per la produzione.
 
