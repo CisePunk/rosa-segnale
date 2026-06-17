@@ -129,6 +129,12 @@ INTERNAL_AUTH_PASSWORD=replace_with_internal_password
 
 Se le variabili non sono presenti, l'area interna resta aperta per la demo locale.
 
+### Confine pubblico / interno
+
+La route `/assistant/answer` è pubblica nella demo: applica policy locale e rate limit prima del retrieval e della risposta AI.
+
+Le route operative interne, incluse ticket, alert, dashboard, report e preview triage, passano da `require_internal_auth`. In locale la protezione è opzionale tramite Basic Auth. In produzione va sostituita o rafforzata con autenticazione per ruoli, sessioni sicure, audit accessi e rate limit dedicato.
+
 ## Base di conoscenza interna
 
 Undici fonti tematiche embedded nel backend, usate per il retrieval e per generare le risposte:
