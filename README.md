@@ -17,30 +17,37 @@ La struttura tecnica richiesta è stata mantenuta:
 
 L'idea è nata dall'esigenza di trasformare una traccia generica in qualcosa di più vicino a un contesto reale di ascolto e rischio. L'architettura, le scelte di flusso, la separazione tra vista pubblica e area interna, la mancata geolocalizzazione, i percorsi rapidi e le cautele sui dati sono decisioni progettuali umane, costruite prima della generazione del codice.
 
-## Workflow di sviluppo
+Il progetto è nato come prototipo didattico e si è evoluto in una base tecnica pensata per essere riusata, adattata e donata ad associazioni, centri antiviolenza, sportelli di ascolto, enti del terzo settore e realtà territoriali.
 
-Il progetto è stato costruito con una pipeline human-in-the-loop: architettura umana, prompt mirati, generazione AI assistita, lettura e audit riga per riga, test manuali per scene, test automatici, cross-review multi-modello e revisione tecnica esterna. Le competenze maturate in quattro anni di lavoro con LLM e automazioni AI sono state applicate specificando contesto, vincoli, criteri di accettazione e casi limite per componenti circoscritti, refactoring, test, privacy, prompt injection, CVE, bias e instradamento delle emergenze. Idea, struttura, priorità di rischio e risultato finale restano responsabilità umana. Dettagli: [docs/workflow-sviluppo.md](docs/workflow-sviluppo.md).
+Implementazioni operative recenti: [docs/implementazioni-operative.md](docs/implementazioni-operative.md).
+
+Preparazione staging sicuro: [docs/staging-sicuro.md](docs/staging-sicuro.md).
+
+Screenshot dimostrativi: [docs/screenshots](docs/screenshots).
 
 ## Avviso importante
 
-Il sistema è un prototipo didattico.
-Non sostituisce servizi di emergenza, centri antiviolenza, supporto medico, psicologico o legale.
-In caso di pericolo immediato, chiamare il 112.
-Per supporto antiviolenza e antistalking in Italia, contattare il 1522, servizio pubblico gratuito attivo 24 ore su 24.
+Rosa Segnale è nato come prototipo didattico, ma si è evoluto in una base tecnica per un progetto civico riusabile.
 
-Le prove devono usare solo dati fittizi o anonimizzati.
-Non inserire nomi, indirizzi, numeri di telefono, screenshot reali, conversazioni identificabili o dettagli che possano ricondurre a persone reali.
+Il codice è pensato per essere studiato, adattato e donato ad associazioni, centri antiviolenza, sportelli di ascolto, enti del terzo settore e realtà territoriali che vogliano sviluppare strumenti digitali di primo orientamento, triage e presa in carico umana.
 
-Il codice non è pronto per la produzione reale senza ulteriori revisioni professionali.
+Le prove vanno eseguite con dati fittizi o anonimizzati.
+
+Per pericolo immediato: 112.
+Per supporto antiviolenza e antistalking in Italia: 1522.
+
+Il progetto include già logiche per ascolto, ponte umano, alert interni, honeypot di staging, violenza economica, violenza verbale, controllo coercitivo e scenari con minori.
+
+Un uso reale richiede revisione privacy, sicurezza applicativa, procedure operative, persone formate e validazione con soggetti competenti.
 
 ## Funzionalità
 
 - vista pubblica Ascolto
-- area interna per back office e revisione
+- area interna per operatori e revisione
 - triage orientativo delle segnalazioni
 - risk score orientativo
 - percorsi suggeriti
-- punto di ascolto AI con base di conoscenza
+- punto di ascolto con base di conoscenza e provider AI configurabile
 - regole di sicurezza post-classificazione con soglie minime di rischio
 - gestione messaggi brevi e ambigui ("aiuto", "lui sta tornando", "non posso parlare")
 - percorso silenzioso per chi non può parlare o telefonare
@@ -51,15 +58,20 @@ Il codice non è pronto per la produzione reale senza ulteriori revisioni profes
 - report aggregati
 - report settimanale automatico
 - follow-up operativo sui casi registrati
+- alert interni per ponte umano
+- honeypot applicativo per staging controllato
+- segnali di giudizio AI: tono rilevato, confidenza urgenza, confidenza uso improprio
+- categorie aggiunte per controllo coercitivo, violenza economica, violenza verbale e contesto chiuso o istituzionale
+- base predisposta per evoluzioni su violenza che coinvolge minori
 - logging provider/modello/timestamp
 
 ## Stack
 
-Backend: Python, FastAPI, Pydantic, SQLite, OpenAI API, python-dotenv, Uvicorn.
+Backend: Python, FastAPI, Pydantic, SQLite, OpenAI API opzionale, python-dotenv, Uvicorn.
 
 Frontend: React, Vite, lucide-react, CSS custom.
 
-AI: OpenAI tramite provider configurabile, modello predefinito `gpt-4o-mini`, base di conoscenza interna, fallback locale e regole di sicurezza.
+AI: provider configurabile, modello predefinito `gpt-4o-mini`, base di conoscenza interna, fallback locale e regole di sicurezza.
 
 ## Architettura
 
@@ -75,13 +87,9 @@ Report automatici e tracciabilità lato backend.
 
 ### Ascolto
 
-Vista pensata per la persona che cerca orientamento.
-Mostra solo risorse rapide, avviso di sicurezza e assistente conversazionale.
-Non mostra KPI, report, provider, registro segnalazioni o dettagli tecnici.
-La vista pubblica non espone casi, dashboard, provider AI o log interni.
+Vista pubblica per richieste di orientamento. Mostra risorse rapide, avviso di sicurezza e assistente conversazionale. Non espone KPI, report, provider, registro segnalazioni o log interni.
 
-Il punto di ascolto usa OpenAI per generare una risposta empatica e modulata.
-La base di conoscenza interna non viene mostrata come testo copiato: serve a indirizzare verso il passo più utile, per esempio 112, 1522, centro antiviolenza, supporto legale qualificato o servizi competenti.
+Il punto di ascolto usa la base di conoscenza interna e un provider AI configurabile. Il fallback locale mantiene il flusso disponibile anche senza chiamate esterne.
 
 Risorse rapide:
 
@@ -91,9 +99,11 @@ Risorse rapide:
 
 ### Area interna
 
-Vista pensata per docente, revisione tecnica o back office.
-Contiene dashboard, report settimanale, registro segnalazioni, classificazione, follow-up operativo e tracciabilità.
-Non carica casi precompilati: il registro mostra solo le segnalazioni inserite dall'utente.
+Vista interna per gestione e revisione. Contiene dashboard, report settimanale, registro segnalazioni, classificazione, follow-up operativo, alert umani, eventi honeypot e tracciabilità.
+
+Gli alert vengono creati quando il triage individua un caso che richiede ponte umano. L'operatore può prendere in carico, aggiornare e chiudere l'alert.
+
+Gli eventi honeypot registrano richieste sospette allo staging, come percorsi `/wp-login.php`, `/.env`, `/admin` o pattern di scansione. Gli IP non vengono salvati in chiaro, ma trasformati in hash.
 
 Il backend genera automaticamente un report settimanale in `reports/weekly_report_latest.md`.
 L'intervallo predefinito è 7 giorni ed è configurabile con:
@@ -134,6 +144,8 @@ Undici fonti tematiche embedded nel backend, usate per il retrieval e per genera
 - Utente minorenne
 - Riferimenti territoriali Sicilia
 - Privacy e minimizzazione
+- Controllo coercitivo e ponte umano
+- Violenza economica e verbale
 
 ## Geolocalizzazione
 
@@ -189,9 +201,9 @@ INTERNAL_AUTH_USERNAME=replace_with_internal_username
 INTERNAL_AUTH_PASSWORD=replace_with_internal_password
 ```
 
-Non caricare mai `.env`, `key.env`, `.venv`, `node_modules`, `dist` o database locali su GitHub.
+Non caricare `.env`, `key.env`, `.venv`, `node_modules`, `dist` o database locali su GitHub.
 
-L'integrazione OpenAI è configurabile tramite `.env` locale. Se la chiamata AI non è disponibile, il backend usa un fallback locale per mantenere la demo utilizzabile.
+L'integrazione OpenAI è configurabile tramite `.env` locale. Il backend include un fallback locale.
 
 ## Avvio backend
 
@@ -229,6 +241,10 @@ La matrice si trova in:
 Il progetto è rilasciato con licenza MIT.
 Associazioni, enti del terzo settore, sportelli di ascolto, centri antiviolenza e progetti civici possono usare e adattare gratuitamente il codice, nel rispetto della licenza e dopo adeguate verifiche privacy, sicurezza e operative.
 
+L'obiettivo non è vendere un prodotto, ma lasciare una base tecnica documentata da cui partire: interfaccia pubblica, dashboard interna, triage orientativo, alert umani, reportistica, honeypot e cautele sui dati.
+
+Il progetto è già predisposto per evoluzioni legate alla violenza su minori, alla presa in carico territoriale e a protocolli operativi supervisionati.
+
 Dettagli:
 
 - [LICENSE](LICENSE)
@@ -253,9 +269,14 @@ Per trasformare Rosa Segnale in servizio operativo servono ulteriori implementaz
 - validazione dei numeri utili e dei riferimenti territoriali;
 - policy chiara su quali dati vengono inviati al provider AI;
 - procedure supervisionate per pericolo imminente, minori, autolesionismo e casi sanitari;
-- test di sicurezza e revisione prima del deploy.
+- test di sicurezza e revisione prima del deploy;
+- canale di notifica operatori, per esempio Telegram, Signal o altro strumento scelto dal presidio umano;
+- turni operatori, SLA e procedure di escalation;
+- blocco automatico o rate limit avanzato sugli eventi sospetti rilevati dall'honeypot;
+- ambiente staging HTTPS con accesso protetto;
+- adattamento dei flussi per casi che coinvolgono minori, con soggetti qualificati e procedure dedicate.
 
-Queste attività possono essere progettate e implementate su richiesta, adattando Rosa Segnale alle esigenze reali dell'organizzazione che vuole utilizzarlo.
+Queste attività vanno progettate con l'organizzazione che vuole utilizzarlo, in base al territorio, alle persone disponibili, ai protocolli interni e ai soggetti istituzionali coinvolti.
 
 ## Presentazione
 
@@ -265,12 +286,14 @@ Un testo breve da leggere o adattare per spiegare il progetto si trova in:
 
 ## Stato
 
-- backend compilato
-- health check OK
-- integrazione OpenAI configurabile tramite `.env` locale
-- fallback locale disponibile se la chiamata AI non riesce
-- 43 test automatici OK alla verifica del 10 giugno 2026 (triage rules, chat policy, assistant provider, auth)
-- dipendenze verificate con `npm audit` e `pip-audit` al 9 giugno 2026, senza vulnerabilità note rilevate
-- revisione tecnica esterna qualificata completata
-- punto di ascolto AI funzionante
-- campo messaggio vuoto all'apertura, senza frase pre-compilata
+- backend FastAPI attivo su `127.0.0.1:8000`
+- frontend Vite attivo su `127.0.0.1:5173`
+- provider AI configurabile tramite `.env`
+- fallback locale disponibile
+- alert interni e honeypot applicativo implementati
+- dashboard interna con KPI, alert, follow-up, registro ticket e monitoraggio honeypot
+- documentazione tecnica aggiornata in `docs/`
+- screenshot dimostrativi in `docs/screenshots/`
+- 50 test backend OK alla verifica del 17 giugno 2026
+- `npm audit`: 0 vulnerabilità alla verifica del 17 giugno 2026
+- `pip-audit`: nessuna vulnerabilità nota alla verifica del 17 giugno 2026

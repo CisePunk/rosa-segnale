@@ -63,8 +63,13 @@ class KnowledgePolicyTest(unittest.TestCase):
     def test_long_out_of_scope_message_is_still_blocked(self) -> None:
         message = (
             "Vorrei una spiegazione molto lunga e dettagliata su come preparare una ricetta "
-            "per una cena con molte persone, scegliendo ingredienti economici e facili da trovare "
-            "senza nessun riferimento al contesto del portale."
+            "tradizionale italiana per una cena importante, scegliendo ingredienti economici "
+            "e facili da trovare al supermercato ordinario, senza nessun riferimento al "
+            "contesto del portale o dei relativi servizi di orientamento. In particolare "
+            "vorrei sapere come abbinare i vini con i piatti, quali dessert risultano "
+            "graditi in estate, come organizzare il menu considerando le intolleranze "
+            "alimentari più diffuse tra gli ospiti, e come presentare le pietanze in modo "
+            "elegante per fare una buona impressione durante la serata."
         )
         reason = evaluate_chat_policy(message)
 

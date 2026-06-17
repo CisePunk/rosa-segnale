@@ -1,6 +1,6 @@
 import unittest
 
-from app.models import EscalationTeam, TicketCategory
+from app.models import EscalationTeam, OperationalArea, TicketCategory
 from app.triage_rules import classify_safety_context
 
 
@@ -49,8 +49,6 @@ class TriageRulesTest(unittest.TestCase):
 
     def test_domestic_violence(self) -> None:
         examples = [
-            "Il mio compagno mi controlla il telefono e mi impedisce di uscire.",
-            "Mi urla addosso e poi dice che è colpa mia.",
             "Mi ha spinta, ma dice che non è successo niente.",
             "Ci siamo lasciati e non accetta che sia finita.",
             "L'ho lasciato e mi ha detto che non mi lascerà mai.",
@@ -62,6 +60,46 @@ class TriageRulesTest(unittest.TestCase):
         for text in examples:
             with self.subTest(text=text):
                 self.assert_rule(text, TicketCategory.domestic_violence, 4, EscalationTeam.anti_violence_center)
+
+    def test_coercive_control_economic_and_verbal_violence(self) -> None:
+        cases = [
+            (
+                "Il mio compagno mi controlla il telefono e mi impedisce di uscire.",
+                TicketCategory.coercive_control,
+                4,
+            ),
+            (
+                "Ero in comunità e avevo il telefono solo un'ora al giorno.",
+                TicketCategory.coercive_control,
+                4,
+            ),
+            (
+                "Mi controlla i soldi e non mi lascia lavorare.",
+                TicketCategory.economic_violence,
+                3,
+            ),
+            (
+                "Mi urla addosso e poi dice che è colpa mia.",
+                TicketCategory.verbal_violence,
+                3,
+            ),
+            (
+                "Mi insulta e mi fa sentire pazza.",
+                TicketCategory.verbal_violence,
+                3,
+            ),
+        ]
+
+        for text, category, risk in cases:
+            with self.subTest(text=text):
+                match = classify_safety_context(text)
+
+                self.assertIsNotNone(match)
+                self.assertEqual(match.category, category)
+                self.assertGreaterEqual(match.min_risk_score, risk)
+                self.assertEqual(match.escalation, EscalationTeam.anti_violence_center)
+                self.assertIn(match.operational_area, [OperationalArea.human_bridge, OperationalArea.listening])
+                self.assertTrue(match.human_handoff)
 
     def test_stalking(self) -> None:
         examples = [
@@ -122,11 +160,27 @@ class TriageRulesTest(unittest.TestCase):
             "Mi consigli un film?",
             "Puoi scrivere tu una denuncia?",
             "Puoi dirmi se questa persona è colpevole?",
+            "Ahah aiuto lol, sto scherzando.",
         ]
 
         for text in examples:
             with self.subTest(text=text):
-                self.assert_rule(text, TicketCategory.out_of_scope, 1, EscalationTeam.insufficient_context)
+                match = classify_safety_context(text)
+
+                self.assertIsNotNone(match, text)
+                self.assertEqual(match.category, TicketCategory.out_of_scope)
+                self.assertGreaterEqual(match.min_risk_score, 1)
+                self.assertEqual(match.escalation, EscalationTeam.insufficient_context)
+                self.assertTrue(match.suspected_misuse)
+
+    def test_short_emergency_words_are_not_misuse(self) -> None:
+        for text in ["aiuto", "Rosa", "non posso parlare", "lui sta tornando"]:
+            with self.subTest(text=text):
+                match = classify_safety_context(text)
+
+                if match is not None:
+                    self.assertFalse(match.suspected_misuse)
+                    self.assertNotEqual(match.category, TicketCategory.out_of_scope)
 
 
 if __name__ == "__main__":

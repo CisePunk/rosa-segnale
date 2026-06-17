@@ -69,6 +69,20 @@ class AssistantProviderRoutingTest(unittest.TestCase):
         self.assertIn("1522", isolation)
         self.assertIn("centro antiviolenza", isolation)
 
+    def test_coercive_economic_and_verbal_routes(self) -> None:
+        coercive = _routing_context("Avevo il telefono solo un'ora e non potevo scrivere liberamente.", [])
+        economic = _routing_context("Mi controlla i soldi e non mi lascia lavorare.", [])
+        verbal = _routing_context("Mi insulta e mi fa sentire pazza.", [])
+        understanding = _routing_context("Non so se è violenza, forse sto esagerando.", [])
+
+        self.assertIn("controllo coercitivo", coercive)
+        self.assertIn("persona reale", coercive)
+        self.assertIn("violenza economica", economic)
+        self.assertIn("persona reale", economic)
+        self.assertIn("violenza verbale", verbal)
+        self.assertIn("senza minimizzare", verbal)
+        self.assertIn("ponte con persona reale", understanding)
+
     def test_openai_error_falls_back_to_local_answer(self) -> None:
         question = "Lui sta tornando."
         chunks = retrieve_chunks(question, 3)

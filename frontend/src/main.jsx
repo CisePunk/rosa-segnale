@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   AlertTriangle,
@@ -10,7 +10,6 @@ import {
   FileBarChart,
   FileText,
   Gauge,
-  GitBranch,
   MessageSquareText,
   PhoneCall,
   RefreshCw,
@@ -19,18 +18,25 @@ import {
 } from "lucide-react";
 import {
   askAssistant,
+  closeAlert,
+  fetchAlerts,
   fetchDashboard,
   fetchHealth,
+  fetchHoneypotEvents,
   fetchTickets,
   fetchWeeklyReport,
   seedSampleTickets,
+  takeAlert,
+  updateAlert,
   updateTicketFollowUp,
 } from "./api";
 import "./styles.css";
 
 const followUpStatuses = ["Da valutare", "In corso", "Ricontatto pianificato", "Escalation esterna", "Chiuso"];
+const HUMAN_HANDOFF_LABEL = "Richiede persona reale";
 const YOUPOL_URL = "https://youpol.poliziadistato.it/landing";
 const MAX_ASSISTANT_CONTEXT_CHARS = 1100;
+const MIN_ASSISTANT_MESSAGE_CHARS = 4;
 const QUICK_RESOURCES = [
   {
     label: "112",
@@ -89,12 +95,16 @@ const aodCapabilities = [
 ];
 
 function App() {
+  const safetyModalRef = useRef(null);
   const [showSafetyNotice, setShowSafetyNotice] = useState(true);
   const [activeView, setActiveView] = useState("listen");
   const [health, setHealth] = useState(null);
   const [dashboard, setDashboard] = useState(null);
   const [tickets, setTickets] = useState([]);
+  const [alerts, setAlerts] = useState([]);
+  const [honeypotEvents, setHoneypotEvents] = useState([]);
   const [sampleStatus, setSampleStatus] = useState({ type: "idle", message: "" });
+  const [alertStatus, setAlertStatus] = useState({ type: "idle", message: "" });
   const [followUpStatus, setFollowUpStatus] = useState({ type: "idle", message: "" });
   const [loading, setLoading] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState(null);
@@ -108,18 +118,23 @@ function App() {
   const [weeklyReport, setWeeklyReport] = useState(null);
   const [reportStatus, setReportStatus] = useState({ type: "idle", message: "" });
   const [reportLoading, setReportLoading] = useState(false);
+  const [alertLoadingId, setAlertLoadingId] = useState(null);
 
   async function loadData() {
     setLoading(true);
     try {
-      const [healthData, dashboardData, ticketData] = await Promise.all([
+      const [healthData, dashboardData, ticketData, alertData, honeypotData] = await Promise.all([
         fetchHealth(),
         fetchDashboard(),
         fetchTickets(),
+        fetchAlerts(),
+        fetchHoneypotEvents(),
       ]);
       setHealth(healthData);
       setDashboard(dashboardData);
       setTickets(ticketData);
+      setAlerts(alertData);
+      setHoneypotEvents(honeypotData);
     } catch (error) {
       setSampleStatus({ type: "error", message: error.message });
     } finally {
@@ -130,6 +145,33 @@ function App() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (!showSafetyNotice || !safetyModalRef.current) return undefined;
+
+    const focusableElements = Array.from(
+      safetyModalRef.current.querySelectorAll("button, a[href], input, select, textarea, [tabindex]:not([tabindex='-1'])"),
+    );
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    firstElement?.focus();
+
+    function handleKeyDown(event) {
+      if (event.key !== "Tab" || focusableElements.length === 0) return;
+
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [showSafetyNotice]);
 
   useEffect(() => {
     if (!tickets.length) {
@@ -149,7 +191,8 @@ function App() {
 
     setRagStatus({ type: "idle", message: "" });
     setRagLoading(true);
-    setRagMessages((messages) => [...messages, { role: "user", text: userQuestion }]);
+    const nextMessages = [...ragMessages, { role: "user", text: userQuestion }];
+    setRagMessages(nextMessages);
     setRagQuestion("");
 
     try {
@@ -240,14 +283,61 @@ function App() {
     }
   }
 
-  const selectedTicket = tickets.find((ticket) => ticket.id === selectedTicketId) || tickets[0] || null;
+  async function handleTakeAlert(alertId) {
+    setAlertLoadingId(alertId);
+    setAlertStatus({ type: "idle", message: "" });
+
+    try {
+      await takeAlert(alertId);
+      setAlertStatus({ type: "success", message: "Alert preso in carico." });
+      await loadData();
+    } catch (error) {
+      setAlertStatus({ type: "error", message: error.message });
+    } finally {
+      setAlertLoadingId(null);
+    }
+  }
+
+  async function handleCloseAlert(alertId) {
+    setAlertLoadingId(alertId);
+    setAlertStatus({ type: "idle", message: "" });
+
+    try {
+      await closeAlert(alertId);
+      setAlertStatus({ type: "success", message: "Alert chiuso." });
+      await loadData();
+    } catch (error) {
+      setAlertStatus({ type: "error", message: error.message });
+    } finally {
+      setAlertLoadingId(null);
+    }
+  }
+
+  async function handleUpdateAlert(alertId, payload) {
+    setAlertLoadingId(alertId);
+    setAlertStatus({ type: "idle", message: "" });
+
+    try {
+      await updateAlert(alertId, payload);
+      setAlertStatus({ type: "success", message: "Alert aggiornato." });
+      await loadData();
+    } catch (error) {
+      setAlertStatus({ type: "error", message: error.message });
+    } finally {
+      setAlertLoadingId(null);
+    }
+  }
+
+  const selectedTicket = tickets.find((ticket) => ticket.id === selectedTicketId) || null;
   const averageRisk = dashboard?.average_risk_score ?? 0;
+  const humanHandoffCount = tickets.filter((ticket) => ticket.human_handoff).length;
+  const activeAlertCount = alerts.filter((alert) => alert.status !== "Chiuso").length;
 
   return (
     <main className="app-shell">
       {showSafetyNotice && (
         <div className="safety-overlay" role="dialog" aria-modal="true" aria-labelledby="safety-title">
-          <section className="safety-modal">
+          <section className="safety-modal" ref={safetyModalRef}>
             <div className="safety-icon">
               <ShieldCheck size={24} />
             </div>
@@ -293,9 +383,11 @@ function App() {
           </div>
         </div>
         <div className="topbar-actions">
-          <div className="view-tabs" aria-label="Sezioni del portale">
+          <div className="view-tabs" role="tablist" aria-label="Sezioni del portale">
             <button
               className={activeView === "listen" ? "active" : ""}
+              role="tab"
+              aria-selected={activeView === "listen"}
               type="button"
               onClick={() => setActiveView("listen")}
             >
@@ -303,6 +395,8 @@ function App() {
             </button>
             <button
               className={activeView === "internal" ? "active" : ""}
+              role="tab"
+              aria-selected={activeView === "internal"}
               type="button"
               onClick={() => setActiveView("internal")}
             >
@@ -313,7 +407,7 @@ function App() {
             <div className="system-status">
               <span className="status-dot" />
               <span className="provider-name">{health?.provider || "modello in caricamento"}</span>
-              <button className="icon-button" onClick={loadData} aria-label="Refresh dashboard" title="Refresh dashboard">
+              <button className="icon-button" onClick={loadData} aria-label="Aggiorna la dashboard" title="Aggiorna la dashboard">
                 <RefreshCw size={17} />
               </button>
             </div>
@@ -334,11 +428,18 @@ function App() {
       ) : (
         <InternalView
           averageRisk={averageRisk}
+          activeAlertCount={activeAlertCount}
+          alertLoadingId={alertLoadingId}
+          alerts={alerts}
+          alertStatus={alertStatus}
           dashboard={dashboard}
           followUpLoading={followUpLoading}
           handleGenerateReport={handleGenerateReport}
           handleSeedSamples={handleSeedSamples}
           handleSaveFollowUp={handleSaveFollowUp}
+          handleTakeAlert={handleTakeAlert}
+          handleCloseAlert={handleCloseAlert}
+          handleUpdateAlert={handleUpdateAlert}
           loading={loading}
           reportLoading={reportLoading}
           reportStatus={reportStatus}
@@ -348,8 +449,10 @@ function App() {
           selectedTicketId={selectedTicketId}
           setSelectedTicketId={setSelectedTicketId}
           followUpStatus={followUpStatus}
+          honeypotEvents={honeypotEvents}
           tickets={tickets}
           weeklyReport={weeklyReport}
+          humanHandoffCount={humanHandoffCount}
         />
       )}
     </main>
@@ -425,12 +528,19 @@ function ListenView({
 }
 
 function InternalView({
+  activeAlertCount,
   averageRisk,
+  alertLoadingId,
+  alerts,
+  alertStatus,
   dashboard,
   followUpLoading,
   handleGenerateReport,
   handleSeedSamples,
   handleSaveFollowUp,
+  handleTakeAlert,
+  handleCloseAlert,
+  handleUpdateAlert,
   loading,
   reportLoading,
   reportStatus,
@@ -440,8 +550,10 @@ function InternalView({
   selectedTicketId,
   setSelectedTicketId,
   followUpStatus,
+  honeypotEvents,
   tickets,
   weeklyReport,
+  humanHandoffCount,
 }) {
   return (
     <>
@@ -449,7 +561,7 @@ function InternalView({
         <KpiCard icon={TicketPlus} label="Segnalazioni" value={dashboard?.total_tickets ?? 0} />
         <KpiCard icon={Gauge} label="Rischio medio" value={averageRisk.toFixed(2)} />
         <KpiCard icon={AlertTriangle} label="Alto rischio" value={dashboard?.high_risk_tickets ?? 0} />
-        <KpiCard icon={GitBranch} label="Percorsi" value={Object.keys(dashboard?.escalation_counts || {}).length} />
+        <KpiCard icon={ShieldCheck} label="Alert attivi" value={activeAlertCount} />
       </section>
 
       <section className="ops-tools panel">
@@ -458,7 +570,7 @@ function InternalView({
           <h2>Registro interno pulito</h2>
           <p>
             L'area interna mostra le segnalazioni registrate e i report aggregati generati dal backend.
-            Per la presentazione puoi caricare casi didattici sintetici, senza dati reali.
+            La distinzione principale è tra ascolto, ponte umano e intervento immediato.
           </p>
         </div>
         <div className="ops-actions">
@@ -498,6 +610,17 @@ function InternalView({
         weeklyReport={weeklyReport}
       />
 
+      <AlertPanel
+        alertLoadingId={alertLoadingId}
+        alerts={alerts}
+        onCloseAlert={handleCloseAlert}
+        onTakeAlert={handleTakeAlert}
+        onUpdateAlert={handleUpdateAlert}
+        status={alertStatus}
+      />
+
+      <HoneypotPanel events={honeypotEvents} />
+
       <section className="workspace-grid">
         <FollowUpPanel
           followUpLoading={followUpLoading}
@@ -522,6 +645,7 @@ function InternalView({
           )}
 
           <Distribution title="Urgenze" data={dashboard?.priority_counts || {}} />
+          <Distribution title="Aree operative" data={dashboard?.operational_area_counts || {}} />
           <Distribution title="Categorie" data={dashboard?.category_counts || {}} />
           <Distribution title="Percorsi" data={dashboard?.escalation_counts || {}} />
         </section>
@@ -570,12 +694,14 @@ function AssistantPanel({
             className="compact"
             value={ragQuestion}
             onChange={(event) => setRagQuestion(event.target.value)}
+            aria-describedby="assistant-message-hint"
             maxLength={600}
             placeholder="Scrivi quello che sta succedendo…"
             required
           />
+          <small id="assistant-message-hint">Puoi inviare anche un segnale breve come Rosa.</small>
         </label>
-        <button className="primary-button" type="submit" disabled={ragLoading || ragQuestion.trim().length < 5}>
+        <button className="primary-button" type="submit" disabled={ragLoading || ragQuestion.trim().length < MIN_ASSISTANT_MESSAGE_CHARS}>
           <MessageSquareText size={18} />
           {ragLoading ? "Sto rispondendo" : "Invia"}
         </button>
@@ -639,24 +765,37 @@ function buildAssistantQuestion(messages, currentQuestion) {
     return prompt;
   }
 
-  const trimmedContext = recentContext.slice(0, Math.max(0, MAX_ASSISTANT_CONTEXT_CHARS - currentQuestion.length - 80));
+  const trimmedContext = trimAtWordBoundary(
+    recentContext,
+    Math.max(0, MAX_ASSISTANT_CONTEXT_CHARS - currentQuestion.length - 80),
+  );
   return `Contesto breve della conversazione:\n${trimmedContext}\n\nNuovo messaggio della persona:\n${currentQuestion}`;
 }
 
 function createSignalCode() {
+  if (window.crypto?.randomUUID) {
+    return `RS-${window.crypto.randomUUID().slice(0, 8).replaceAll("-", "").toUpperCase()}`;
+  }
+
   const bytes = new Uint8Array(4);
   if (window.crypto?.getRandomValues) {
     window.crypto.getRandomValues(bytes);
   } else {
-    bytes.forEach((_, index) => {
-      bytes[index] = Math.floor(Math.random() * 256);
-    });
+    return "RS-CRYPTO";
   }
 
   return `RS-${Array.from(bytes)
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("")
     .toUpperCase()}`;
+}
+
+function trimAtWordBoundary(text, maxLength) {
+  if (text.length <= maxLength) return text;
+  const trimmed = text.slice(0, maxLength);
+  const lastBreak = Math.max(trimmed.lastIndexOf(" "), trimmed.lastIndexOf("\n"));
+
+  return `${trimmed.slice(0, lastBreak > 40 ? lastBreak : maxLength).trim()}...`;
 }
 
 function formatProviderLabel(provider) {
@@ -715,7 +854,7 @@ function ReportPanel({ handleGenerateReport, reportLoading, reportStatus, weekly
         <article className="weekly-report">
           <div className="weekly-report-header">
             <h3>{weeklyReport.title}</h3>
-            <span>{new Date(weeklyReport.generated_at).toLocaleString()}</span>
+            <span>{formatDateTime(weeklyReport.generated_at)}</span>
           </div>
           <p>{weeklyReport.summary}</p>
           <div className="report-metric-grid">
@@ -766,6 +905,159 @@ function extractHighRiskItems(markdown) {
     .map((line) => line.replace("- ", ""));
 }
 
+function AlertPanel({ alertLoadingId, alerts, onCloseAlert, onTakeAlert, onUpdateAlert, status }) {
+  const activeAlerts = alerts.filter((alert) => alert.status !== "Chiuso");
+  const closedAlerts = alerts.filter((alert) => alert.status === "Chiuso").slice(0, 3);
+
+  return (
+    <section className="alert-panel panel">
+      <div className="panel-heading">
+        <div>
+          <p className="eyebrow">Presa in carico umana</p>
+          <h2>Alert in arrivo</h2>
+        </div>
+        <AlertTriangle size={22} />
+      </div>
+
+      {status.message && (
+        <p className={`notice ${status.type}`}>
+          {status.type === "success" ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
+          {status.message}
+        </p>
+      )}
+
+      {activeAlerts.length === 0 ? (
+        <p className="empty-state">Nessun alert attivo. I casi con ponte umano compariranno qui.</p>
+      ) : (
+        <div className="alert-list">
+          {activeAlerts.map((alert) => (
+            <article className={`alert-card alert-${alert.status === "Nuovo" ? "new" : "progress"}`} key={alert.id}>
+              <div className="alert-card-header">
+                <span className={`risk risk-${alert.risk_score}`}>Rischio {alert.risk_score}/5</span>
+                <span className="status-pill status-attivo">{alert.status}</span>
+              </div>
+              <h3>{alert.title}</h3>
+              <p>{alert.summary}</p>
+              <dl>
+                <div>
+                  <dt>Area</dt>
+                  <dd>{alert.operational_area}</dd>
+                </div>
+                <div>
+                  <dt>Fonte</dt>
+                  <dd>{alert.source}</dd>
+                </div>
+                <div>
+                  <dt>Ticket</dt>
+                  <dd>{alert.ticket_id ? `#${alert.ticket_id}` : "Non collegato"}</dd>
+                </div>
+                <div>
+                  <dt>Creato</dt>
+                  <dd>{formatDateTime(alert.created_at)}</dd>
+                </div>
+              </dl>
+              <div className="alert-actions">
+                {alert.status === "Nuovo" ? (
+                  <button
+                    className="primary-button"
+                    type="button"
+                    disabled={alertLoadingId === alert.id}
+                    onClick={() => onTakeAlert(alert.id)}
+                  >
+                    <ShieldCheck size={18} />
+                    Prendi in carico
+                  </button>
+                ) : (
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    disabled={alertLoadingId === alert.id}
+                    onClick={() =>
+                      onUpdateAlert(alert.id, {
+                        status: "In carico",
+                        operator_label: alert.operator_label || "Operatore demo",
+                        internal_note: alert.internal_note || "Presa in carico confermata.",
+                      })
+                    }
+                  >
+                    <ClipboardList size={17} />
+                    Aggiorna nota
+                  </button>
+                )}
+                <button
+                  className="secondary-button"
+                  type="button"
+                  disabled={alertLoadingId === alert.id}
+                  onClick={() => onCloseAlert(alert.id)}
+                >
+                  Chiudi
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+
+      {closedAlerts.length > 0 && (
+        <details className="closed-alerts">
+          <summary>Ultimi alert chiusi</summary>
+          {closedAlerts.map((alert) => (
+            <p key={alert.id}>
+              #{alert.id} · {alert.title} · {alert.operational_area}
+            </p>
+          ))}
+        </details>
+      )}
+    </section>
+  );
+}
+
+function HoneypotPanel({ events }) {
+  return (
+    <section className="honeypot-panel panel">
+      <div className="panel-heading">
+        <div>
+          <p className="eyebrow">Sicurezza staging</p>
+          <h2>Eventi honeypot</h2>
+        </div>
+        <ShieldCheck size={22} />
+      </div>
+      {events.length === 0 ? (
+        <p className="empty-state">Nessun percorso-esca intercettato.</p>
+      ) : (
+        <div className="honeypot-list">
+          {events.slice(0, 6).map((event) => (
+            <article className="honeypot-event" key={event.id}>
+              <div>
+                <span className={`risk risk-${event.risk_score}`}>Rischio {event.risk_score}/5</span>
+                <strong>{compactUntrustedText(`${event.method} ${event.path}`, 120)}</strong>
+              </div>
+              <dl>
+                <div>
+                  <dt>Motivo</dt>
+                  <dd>{event.reason}</dd>
+                </div>
+                <div>
+                  <dt>IP hash</dt>
+                  <dd>{event.ip_hash}</dd>
+                </div>
+                <div>
+                  <dt>User agent</dt>
+                  <dd>{compactUntrustedText(event.user_agent, 160) || "Non disponibile"}</dd>
+                </div>
+                <div>
+                  <dt>Ora</dt>
+                  <dd>{formatDateTime(event.created_at)}</dd>
+                </div>
+              </dl>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function FollowUpPanel({ followUpLoading, onSave, status, ticket }) {
   const [followUpStatus, setFollowUpStatus] = useState("Da valutare");
   const [internalNote, setInternalNote] = useState("");
@@ -812,6 +1104,7 @@ function FollowUpPanel({ followUpLoading, onSave, status, ticket }) {
 
       <article className="case-summary">
         <span className={`risk risk-${ticket.risk_score}`}>Rischio {ticket.risk_score}/5</span>
+        {ticket.human_handoff && <span className="handoff-pill">{HUMAN_HANDOFF_LABEL}</span>}
         <h3>{ticket.title}</h3>
         <p>{ticket.description}</p>
         <dl>
@@ -822,6 +1115,10 @@ function FollowUpPanel({ followUpLoading, onSave, status, ticket }) {
           <div>
             <dt>Categoria</dt>
             <dd>{ticket.category}</dd>
+          </div>
+          <div>
+            <dt>Area operativa</dt>
+            <dd>{ticket.operational_area}</dd>
           </div>
         </dl>
       </article>
@@ -895,6 +1192,11 @@ function TicketDecision({ ticket }) {
         <span className="tag">{ticket.category}</span>
         <span className={`risk risk-${ticket.risk_score}`}>Rischio {ticket.risk_score}/5</span>
       </div>
+      <div className="decision-flags">
+        <span className="status-pill status-anteprima">{ticket.operational_area}</span>
+        {ticket.human_handoff && <span className="handoff-pill">{HUMAN_HANDOFF_LABEL}</span>}
+        {ticket.suspected_misuse && <span className="misuse-pill">Possibile abuso/test</span>}
+      </div>
       <h3>{ticket.title}</h3>
       <p>{ticket.recommendation}</p>
       <dl>
@@ -910,9 +1212,42 @@ function TicketDecision({ ticket }) {
           <dt>Follow-up</dt>
           <dd>{ticket.follow_up_status}</dd>
         </div>
+        <div>
+          <dt>Area operativa</dt>
+          <dd>{ticket.operational_area}</dd>
+        </div>
+        <div>
+          <dt>Tono rilevato</dt>
+          <dd>{ticket.emotional_tone || "Non determinato"}</dd>
+        </div>
+        <div>
+          <dt>Confidenza</dt>
+          <dd>
+            Urgenza {formatConfidence(ticket.urgency_confidence)} · Abuso {formatConfidence(ticket.misuse_confidence)}
+          </dd>
+        </div>
       </dl>
     </article>
   );
+}
+
+function formatConfidence(value) {
+  return `${Math.round((Number(value) || 0) * 100)}%`;
+}
+
+function formatDateTime(value) {
+  if (!value) return "-";
+  const hasTimezone = /(?:z|[+-]\d{2}:\d{2})$/i.test(value);
+  const parsed = new Date(hasTimezone ? value : `${value}Z`);
+
+  return Number.isNaN(parsed.getTime()) ? "-" : parsed.toLocaleString();
+}
+
+function compactUntrustedText(value, maxLength) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength - 3).trim()}...`;
 }
 
 function Distribution({ title, data }) {
@@ -952,11 +1287,13 @@ function TicketTable({ onSelectTicket, selectedTicketId, tickets }) {
             <th>Titolo</th>
             <th>Urgenza</th>
             <th>Categoria</th>
+            <th>Area</th>
             <th>Rischio</th>
             <th>Percorso</th>
+            <th>Umano</th>
             <th>Follow-up</th>
             <th>Creata</th>
-            <th></th>
+            <th scope="col"><span className="sr-only">Azioni</span></th>
           </tr>
         </thead>
         <tbody>
@@ -968,12 +1305,14 @@ function TicketTable({ onSelectTicket, selectedTicketId, tickets }) {
               </td>
               <td>{ticket.priority}</td>
               <td>{ticket.category}</td>
+              <td>{ticket.operational_area}</td>
               <td>
                 <span className={`risk risk-${ticket.risk_score}`}>{ticket.risk_score}/5</span>
               </td>
               <td>{ticket.escalation}</td>
+              <td>{ticket.human_handoff ? "Sì" : "No"}</td>
               <td>{ticket.follow_up_status}</td>
-              <td>{new Date(`${ticket.created_at}Z`).toLocaleString()}</td>
+              <td>{formatDateTime(ticket.created_at)}</td>
               <td>
                 <button className="table-action" type="button" onClick={() => onSelectTicket(ticket.id)}>
                   Apri

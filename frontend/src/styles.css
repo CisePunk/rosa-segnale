@@ -394,6 +394,8 @@ h3 {
 .aod-feature,
 .rag-panel,
 .report-panel,
+.alert-panel,
+.honeypot-panel,
 .ticket-table-panel,
 .follow-up-panel,
 .workspace-grid > .panel {
@@ -406,6 +408,16 @@ h3 {
 }
 
 .report-panel {
+  margin: 0 auto 16px;
+  max-width: 1440px;
+}
+
+.alert-panel {
+  margin: 0 auto 16px;
+  max-width: 1440px;
+}
+
+.honeypot-panel {
   margin: 0 auto 16px;
   max-width: 1440px;
 }
@@ -721,6 +733,96 @@ h3 {
   padding: 10px 12px;
 }
 
+.alert-list {
+  display: grid;
+  gap: 12px;
+}
+
+.alert-card {
+  background: #fffafd;
+  border: 1px solid #f2d3e3;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.alert-card.alert-new {
+  background: #fff0ed;
+  border-color: #f0a79f;
+}
+
+.alert-card.alert-progress {
+  background: #fff8ef;
+  border-color: #f0c789;
+}
+
+.alert-card-header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.alert-card h3 {
+  font-size: 16px;
+}
+
+.alert-card p {
+  color: #4a2a3d;
+  line-height: 1.5;
+  margin-top: 8px;
+}
+
+.alert-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.closed-alerts {
+  margin-top: 14px;
+}
+
+.closed-alerts summary {
+  color: #a31368;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 720;
+}
+
+.closed-alerts p {
+  color: #6d465d;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.honeypot-list {
+  display: grid;
+  gap: 10px;
+}
+
+.honeypot-event {
+  background: linear-gradient(180deg, #fffefd 0%, #fff7f4 100%);
+  border: 1px solid #efc7bd;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.honeypot-event > div:first-child {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.honeypot-event strong {
+  color: #5c2c24;
+  font-size: 14px;
+}
+
 .raw-report {
   margin-top: 14px;
 }
@@ -886,6 +988,33 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(229, 43, 138, 0.14);
 }
 
+.primary-button:focus-visible,
+.secondary-button:focus-visible,
+.table-action:focus-visible,
+.icon-button:focus-visible,
+.view-tabs button:focus-visible {
+  outline: 2px solid #d4147b;
+  outline-offset: 2px;
+}
+
+.sr-only {
+  clip: rect(0 0 0 0);
+  border: 0;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+label small {
+  color: #81536f;
+  font-size: 12px;
+  font-weight: 520;
+}
+
 .form-row {
   display: grid;
   gap: 12px;
@@ -948,7 +1077,9 @@ textarea:focus {
 }
 
 .tag,
-.risk {
+.risk,
+.handoff-pill,
+.misuse-pill {
   border-radius: 999px;
   display: inline-flex;
   font-size: 12px;
@@ -975,6 +1106,23 @@ textarea:focus {
 .risk-3 {
   background: #fff4d6;
   color: #755108;
+}
+
+.handoff-pill {
+  background: #e7f3ee;
+  color: #2f654f;
+}
+
+.misuse-pill {
+  background: #edf1f0;
+  color: #475652;
+}
+
+.decision-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -4px 0 12px;
 }
 
 .decision-card p {

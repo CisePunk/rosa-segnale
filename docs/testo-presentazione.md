@@ -1,29 +1,70 @@
-# Testo breve di presentazione
+# Presentazione breve
 
-Rosa Segnale è un prototipo didattico sviluppato come progetto finale Python e AI.
+Rosa Segnale è un prototipo web per ascolto, orientamento e triage non diagnostico in contesti di rischio.
 
-L'idea nasce dall'esigenza di trasformare una traccia tecnica in un flusso più vicino a un contesto reale di ascolto: le richieste di aiuto non arrivano sempre in forma ordinata, possono essere brevi, ambigue o interrotte.
+Il sistema è diviso in due viste.
 
-Il portale ha due livelli: una vista pubblica di ascolto e una vista interna per gestione, revisione e reportistica.
+La vista pubblica contiene:
 
-Nella vista Ascolto, la persona non vede dati tecnici, KPI, report o registri interni. Trova solo risorse rapide, come 112, 1522 e YouPol, insieme a un punto di ascolto AI.
+- risorse rapide: 112, 1522, YouPol
+- avviso di sicurezza
+- assistente conversazionale
+- codice locale non identificativo
+- campo libero per messaggi brevi
 
-Il chatbot usa OpenAI per generare una risposta empatica e naturale. La base di conoscenza interna non viene mostrata come testo copiato, ma serve a orientare la risposta verso il passo più utile: emergenza, centro antiviolenza, supporto legale qualificato, supporto sanitario o servizi competenti.
+L'area interna contiene:
 
-Nell'Area interna, invece, si vede la parte gestionale e tecnica del progetto. Qui sono presenti il triage orientativo delle segnalazioni, il livello di rischio, i percorsi suggeriti, il registro interno, il follow-up operativo, la tracciabilità del modello e i report aggregati.
+- KPI aggregati
+- registro segnalazioni
+- classificazione orientativa
+- livello di rischio
+- area operativa
+- alert per presa in carico umana
+- follow-up operativo
+- eventi honeypot
+- report settimanale
 
-Il registro interno parte vuoto e mostra solo le segnalazioni inserite. Ogni caso può essere selezionato, commentato con una nota interna e aggiornato con uno stato di follow-up.
+Il backend è sviluppato con Python, FastAPI, Pydantic e SQLite.
 
-Dal punto di vista tecnico, il backend è sviluppato in Python con FastAPI, Pydantic e SQLite. Il frontend è realizzato con React e Vite. La parte AI usa OpenAI tramite provider configurabile, il modello predefinito gpt-4o-mini, una base di conoscenza interna, regole di sicurezza e fallback locale.
+Il frontend è sviluppato con React, Vite e CSS custom.
 
-Il backend genera automaticamente un report settimanale con KPI aggregati e permette di rigenerarlo anche manualmente.
+La parte AI usa:
 
-Il metodo di sviluppo è stato human-in-the-loop: progettazione umana, prompt mirati, generazione assistita, audit riga per riga, test automatici, test manuali per scene, cross-review multi-modello e revisione tecnica esterna. Le dipendenze sono state verificate anche con `npm audit` e `pip-audit`.
+- provider configurabile
+- modello predefinito `gpt-4o-mini`
+- base di conoscenza interna
+- fallback locale
+- regole di sicurezza post-classificazione
 
-Rosa Segnale non vuole sostituire servizi reali di emergenza, supporto medico, psicologico o legale. Per questo la vista pubblica contiene un avviso chiaro e il codice è presentato come prototipo didattico, non come servizio pronto per la produzione.
+Il triage distingue:
 
-Il codice è rilasciato con licenza MIT. Questo significa che associazioni, enti del terzo settore, sportelli di ascolto, centri antiviolenza e progetti civici possono usarlo e adattarlo gratuitamente.
+- ascolto e orientamento
+- ponte umano
+- intervento immediato
+- supporto territoriale
+- uso non operativo
 
-Prima di un uso reale, però, servono revisioni privacy, sicurezza, legali e operative. Servono anche procedure supervisionate, personale formato, gestione sicura dei dati, autenticazione, cifratura, audit log, deploy HTTPS e test di sicurezza.
+Sono presenti controlli specifici per:
 
-In sintesi, Rosa Segnale dimostra come Python e AI possano essere usati non solo per classificare dati, ma per costruire un flusso più responsabile: ascolto, orientamento, triage orientativo, tracciabilità e reportistica.
+- messaggi brevi come `Rosa`, `aiuto`, `non posso parlare`
+- controllo coercitivo
+- violenza economica
+- violenza verbale
+- stalking e controllo
+- presenza di minori
+- gravidanza
+- armi o minaccia immediata
+- richieste fuori ambito o uso improprio
+
+Il progetto include anche un honeypot applicativo per lo staging. Gli eventi sospetti vengono registrati in una tabella separata, con IP hashato e dati tecnici minimi.
+
+Verifiche attuali:
+
+```text
+Backend tests: 50 OK
+Frontend build: OK
+npm audit: 0 vulnerabilities
+pip-audit: No known vulnerabilities found
+```
+
+Rosa Segnale è un prototipo tecnico. Un uso reale richiede revisione privacy, sicurezza, legale e operativa.

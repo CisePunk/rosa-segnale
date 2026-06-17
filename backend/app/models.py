@@ -13,6 +13,10 @@ class Priority(str, Enum):
 class TicketCategory(str, Enum):
     immediate_risk = "Rischio immediato"
     domestic_violence = "Violenza domestica"
+    coercive_control = "Controllo coercitivo"
+    economic_violence = "Violenza economica"
+    verbal_violence = "Violenza verbale"
+    institutional_confinement = "Contesto chiuso o istituzionale"
     stalking = "Stalking o controllo"
     legal_support = "Supporto legale"
     psychological_support = "Supporto psicologico"
@@ -39,6 +43,26 @@ class EscalationTeam(str, Enum):
     insufficient_context = "Informazioni insufficienti"
 
 
+class OperationalArea(str, Enum):
+    listening = "Ascolto e orientamento"
+    human_bridge = "Ponte umano"
+    immediate_intervention = "Intervento immediato"
+    territorial_support = "Supporto territoriale"
+    non_operational = "Non operativo"
+
+
+class AlertStatus(str, Enum):
+    new = "Nuovo"
+    in_progress = "In carico"
+    closed = "Chiuso"
+
+
+class AlertSource(str, Enum):
+    ticket = "Ticket"
+    rosa_button = "Bottone Rosa"
+    manual = "Manuale"
+
+
 class TicketCreate(BaseModel):
     title: str = Field(..., min_length=3, max_length=160)
     description: str = Field(..., min_length=10, max_length=4000)
@@ -52,10 +76,31 @@ class TicketFollowUpUpdate(BaseModel):
     internal_note: str = Field(default="", max_length=1200)
 
 
+class AlertCreate(BaseModel):
+    source: AlertSource = AlertSource.manual
+    title: str = Field(..., min_length=3, max_length=160)
+    summary: str = Field(..., min_length=3, max_length=700)
+    risk_score: int = Field(..., ge=1, le=5)
+    operational_area: OperationalArea = OperationalArea.human_bridge
+    ticket_id: int | None = None
+
+
+class AlertUpdate(BaseModel):
+    status: AlertStatus
+    operator_label: str = Field(default="", max_length=120)
+    internal_note: str = Field(default="", max_length=1200)
+
+
 class TriageResult(BaseModel):
     category: TicketCategory
     risk_score: int = Field(..., ge=1, le=5)
     escalation: EscalationTeam
+    operational_area: OperationalArea = OperationalArea.listening
+    human_handoff: bool = False
+    suspected_misuse: bool = False
+    emotional_tone: str = Field(default="Non determinato", max_length=80)
+    urgency_confidence: float = Field(default=0, ge=0, le=1)
+    misuse_confidence: float = Field(default=0, ge=0, le=1)
     recommendation: str = Field(..., max_length=700)
     provider: str = Field(..., max_length=80)
     rationale: str = Field(..., max_length=500)
@@ -66,6 +111,12 @@ class Ticket(TicketCreate):
     category: TicketCategory
     risk_score: int
     escalation: EscalationTeam
+    operational_area: OperationalArea = OperationalArea.listening
+    human_handoff: bool = False
+    suspected_misuse: bool = False
+    emotional_tone: str = "Non determinato"
+    urgency_confidence: float = 0
+    misuse_confidence: float = 0
     recommendation: str
     rationale: str
     provider: str
@@ -74,12 +125,41 @@ class Ticket(TicketCreate):
     internal_note: str = ""
 
 
+class Alert(BaseModel):
+    id: int
+    ticket_id: int | None = None
+    source: AlertSource
+    title: str
+    summary: str
+    risk_score: int
+    operational_area: OperationalArea
+    status: AlertStatus
+    operator_label: str = ""
+    internal_note: str = ""
+    created_at: str
+    taken_at: str | None = None
+    closed_at: str | None = None
+
+
+class HoneypotEvent(BaseModel):
+    id: int
+    path: str
+    method: str
+    reason: str
+    risk_score: int
+    ip_hash: str
+    user_agent: str = ""
+    query_present: bool = False
+    created_at: str
+
+
 class DashboardKpis(BaseModel):
     total_tickets: int
     average_risk_score: float
     priority_counts: dict[str, int]
     category_counts: dict[str, int]
     escalation_counts: dict[str, int]
+    operational_area_counts: dict[str, int] = Field(default_factory=dict)
     high_risk_tickets: int
 
 

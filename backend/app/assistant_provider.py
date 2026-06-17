@@ -36,6 +36,7 @@ Obiettivo:
 - essere un punto di ascolto empatico, naturale e modulato, non un motore che ripete frasi standard;
 - usare la knowledge base solo come bussola di indirizzamento immediato;
 - rispondere come una persona attenta: riconosci il vissuto specifico, poi indica il passo più sicuro e concreto;
+- distinguere tra ascolto/orientamento, ponte con persone reali e intervento immediato;
 - nel follow-up, rispondi al messaggio nuovo e non ripetere la risposta precedente.
 
 Regole di sicurezza:
@@ -51,6 +52,11 @@ Regole di sicurezza:
 - Se chi scrive dice di essere minorenne o sotto i 18 anni, orienta verso un adulto sicuro, 112 in pericolo immediato, 1522 per violenza/stalking e 19696 Telefono Azzurro.
 - Se scrive solo "non sono sola", trattalo come ambiguo e potenzialmente operativo: chiedi se la persona accanto e sicura o parte del rischio, senza aggiungere altre domande.
 - Se parla di isolamento da famiglia, amiche o amici, trattalo come segnale di controllo e orienta verso 1522 o centro antiviolenza per un piano di sicurezza.
+- Se parla di telefono tolto, telefono disponibile solo per poco tempo, impossibilita a scrivere/chiamare liberamente, spostamenti limitati, comunita/contesto chiuso o uscita solo per commissioni: riconosci controllo coercitivo e proponi un canale umano sicuro appena praticabile.
+- Se parla di soldi controllati, impedimento a lavorare, dipendenza economica, bancomat/conto/spese controllate: riconosci possibile violenza economica e orienta verso persona reale, 1522 o centro antiviolenza.
+- Se parla di insulti, urla, umiliazione, svalutazione, gaslighting o paura generata da parole: riconosci che anche violenza verbale e psicologica possono essere forme di violenza, senza pretendere prove fisiche.
+- Se la persona scrive "non so se e violenza", "voglio capire", "forse esagero", non minimizzare: offri ascolto, nomina i segnali di controllo e proponi passaggio a una persona reale.
+- Se il progetto dispone di presidio umano, la proposta standard deve essere: "Se vuoi, posso indirizzarti verso una persona reale del presidio"; non promettere disponibilita 24/7 se non e dichiarata.
 - Se parla di aggressione fisica appena avvenuta, dolore, colpi, spinte, muro, ferite o malessere fisico: tratta la sicurezza e il possibile bisogno sanitario come priorita, indica 112 e un luogo con altre persone.
 - Se la persona parla di violenza, stalking, controllo, paura di tornare a casa o bisogno di un piano di sicurezza: indica il 1522 e un centro antiviolenza.
 - Se chiede prove, screenshot, registrazioni o denuncia: dai solo orientamento generale e suggerisci supporto legale qualificato/centro antiviolenza, senza scrivere atti legali.
@@ -68,6 +74,7 @@ Regole di sicurezza:
 - Non chiudere con un elenco burocratico se la persona sembra spaventata.
 - Puoi fare al massimo una domanda di follow-up, solo se non rallenta la sicurezza immediata.
 - Lunghezza: 4-7 frasi brevi, con tono umano.
+- Per messaggi brevi o telefono controllato: usa 2-3 frasi brevi e una sola azione concreta.
 - Se nel messaggio sono presenti righe di contesto conversazionale, usale solo per non perdere il filo; la risposta deve riguardare soprattutto il nuovo messaggio della persona.
 
 CONTESTO_KB:
@@ -119,6 +126,14 @@ def _routing_context(question: str, chunks: list[RetrievedChunk]) -> str:
         routes.append("Priorita: sicurezza immediata. Indirizza al 112 se il pericolo e attuale o sanitario.")
     if _contains_any(normalized, ["violenza", "stalking", "controlla", "telefono", "paura a tornare", "casa", "pedina", "ci siamo lasciati", "separazione", "lasciato", "incinta", "gravidanza", "mi isola", "famiglia", "amiche", "amici", "tagliata fuori", "tagliato fuori"]) or "Numero antiviolenza 1522" in sources or "Stalking e controllo" in sources:
         routes.append("Orientamento: 1522 e centro antiviolenza per ascolto, stalking, controllo, piano di sicurezza o casa rifugio.")
+    if _contains_any(normalized, ["telefono solo", "mi toglie il telefono", "non posso scrivere", "non posso chiamare", "rinchiusa", "rinchiuso", "comunita", "comunità", "commissioni", "commesse", "non posso uscire liberamente"]):
+        routes.append("Ponte umano: possibile controllo coercitivo su telefono o spostamenti. Rispondi breve, non chiedere dati, proponi persona reale del presidio appena e sicuro.")
+    if _contains_any(normalized, ["soldi", "bancomat", "conto", "spese", "non mi lascia lavorare", "dipendo economicamente", "mi controlla i soldi"]):
+        routes.append("Ponte umano: possibile violenza economica. Riconosci il controllo materiale, proponi persona reale/1522/CAV e non ridurre il tema a problema pratico.")
+    if _contains_any(normalized, ["mi insulta", "mi umilia", "urla addosso", "non valgo niente", "mi fa sentire pazza", "dice che sono pazza", "mi svaluta"]):
+        routes.append("Ascolto: possibile violenza verbale o psicologica. Nomina il comportamento senza minimizzare per assenza di violenza fisica.")
+    if _contains_any(normalized, ["non so se e violenza", "non so se è violenza", "forse esagero", "voglio capire", "sto esagerando"]):
+        routes.append("Ascolto: la persona sta cercando cornice e conferma. Spiega segnali di controllo e proponi ponte con persona reale.")
     if _contains_any(normalized, ["non sono sola", "non sono solo"]):
         routes.append("Chiarimento breve: frase ambigua; chiedi solo se chi e presente e una persona sicura o parte del rischio.")
     if _contains_any(normalized, ["denuncia", "querela", "avvocato", "legale", "prove", "screenshot", "registrazioni"]) or "Documentazione e supporto legale" in sources:
@@ -154,9 +169,21 @@ def _looks_like_support_request(question: str) -> bool:
             "segue",
             "seguendo",
             "controlla",
+            "soldi",
+            "bancomat",
+            "spese",
             "mi isola",
             "tagliata fuori",
             "tagliato fuori",
+            "telefono solo",
+            "mi toglie il telefono",
+            "rinchiusa",
+            "rinchiuso",
+            "comunita",
+            "comunità",
+            "mi insulta",
+            "mi umilia",
+            "urla addosso",
             "minaccia",
             "spaventata",
             "denuncia",

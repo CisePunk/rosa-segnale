@@ -35,6 +35,25 @@ DEFAULT_KNOWLEDGE_SOURCES = {
     validare la preoccupazione della persona, evitare giudizi e suggerire di contattare
     il 1522 o un centro antiviolenza per valutare un piano di sicurezza.
     """,
+    "Controllo coercitivo e ponte umano": """
+    La violenza non è solo aggressione fisica. Segnali importanti possono essere:
+    telefono sottratto o concesso solo per poco tempo, impossibilità di scrivere o
+    chiamare liberamente, controllo degli spostamenti, isolamento, permanenza forzata
+    in casa, in comunità o in un contesto chiuso, uscita possibile solo per commissioni.
+    In questi casi la persona può avere finestre brevissime per chiedere aiuto.
+    La risposta deve essere breve, non chiedere dati identificativi, riconoscere il
+    controllo coercitivo e proporre un ponte con una persona reale del presidio quando
+    è sicuro farlo. Se il pericolo diventa immediato, il riferimento resta il 112.
+    """,
+    "Violenza economica e verbale": """
+    La violenza può essere economica o verbale. Controllo dei soldi, bancomat, conto,
+    spese, impedimento a lavorare o dipendenza economica forzata sono segnali di
+    violenza economica. Insulti, umiliazioni, urla, svalutazione, gaslighting e paura
+    generata dalle parole possono essere violenza verbale o psicologica. La risposta
+    non deve minimizzare perché non ci sono botte: deve aiutare la persona a dare un
+    nome al comportamento, offrire ascolto umano e orientare verso 1522 o centro
+    antiviolenza se il controllo limita libertà e sicurezza.
+    """,
     "Documentazione e supporto legale": """
     Quando una persona parla di screenshot, messaggi, registrazioni, foto, prove,
     denuncia, querela o avvocato, la risposta deve orientare alla raccolta ordinata
@@ -106,6 +125,22 @@ BLOCKED_TERMS = [
     "reveal prompt",
     "show me credentials",
     "system prompt",
+    # varianti italiane di prompt injection
+    "ignora le istruzioni",
+    "ignora le precedenti istruzioni",
+    "dimentica le istruzioni",
+    "dimentica tutto e",
+    "mostrami il prompt",
+    "mostra il prompt di sistema",
+    "mostra le istruzioni di sistema",
+    "svela il prompt",
+    "istruzioni di sistema",
+    "prompt di sistema",
+    "fingi di essere un",
+    "da ora sei",
+    "sei in realtà un",
+    "nuovo personaggio:",
+    "sei ora",
 ]
 
 
@@ -147,6 +182,12 @@ OPERATIONAL_TERMS = {
     "capire",
     "confusa",
     "controlla",
+    "economica",
+    "soldi",
+    "bancomat",
+    "conto",
+    "spese",
+    "lavorare",
     "denuncia",
     "denunciare",
     "dolore",
@@ -169,6 +210,16 @@ OPERATIONAL_TERMS = {
     "spaventata",
     "supporto",
     "telefono",
+    "rinchiusa",
+    "rinchiuso",
+    "comunita",
+    "comunità",
+    "commissioni",
+    "commesse",
+    "insulta",
+    "umilia",
+    "urla",
+    "svaluta",
     "tornando",
     "tornare",
     "famiglia",
@@ -251,7 +302,7 @@ def evaluate_chat_policy(question: str) -> str | None:
     if len(terms) < 2 and not _is_short_allowed_message(normalized, terms):
         return "Blocked: the message is too short or not meaningful enough for the operations assistant."
 
-    if len(question) > 200 and not terms.intersection(OPERATIONAL_TERMS):
+    if len(question) > 500 and not terms.intersection(OPERATIONAL_TERMS):
         return "Blocked: no clear operational context was found in the question."
 
     return None
@@ -259,7 +310,7 @@ def evaluate_chat_policy(question: str) -> str | None:
 
 def blocked_answer(policy_reason: str) -> str:
     return (
-        f"{policy_reason} La chat è stata bloccata per questa richiesta. "
+        "Il tuo messaggio non può essere elaborato dalla chat. "
         "Scrivi solo messaggi pertinenti a richiesta di aiuto, orientamento, sicurezza personale o supporto."
     )[:MAX_RAG_ANSWER_CHARS]
 
@@ -408,6 +459,15 @@ def _expand_query_terms(normalized: str, terms: set[str]) -> set[str]:
 
     if _has_social_isolation_signal(normalized):
         expanded.update({"stalking", "controllo", "isolamento", "1522", "antiviolenza", "sicurezza"})
+
+    if any(term in normalized for term in ["telefono solo", "mi toglie il telefono", "non posso scrivere", "non posso chiamare", "rinchiusa", "rinchiuso", "comunita", "comunità", "commissioni", "commesse"]):
+        expanded.update({"controllo", "coercitivo", "telefono", "spostamenti", "ponte", "umano", "1522"})
+
+    if any(term in normalized for term in ["soldi", "bancomat", "conto", "spese", "non mi lascia lavorare", "dipendo economicamente", "mi controlla i soldi"]):
+        expanded.update({"violenza", "economica", "controllo", "soldi", "antiviolenza", "1522"})
+
+    if any(term in normalized for term in ["mi insulta", "mi umilia", "urla addosso", "non valgo niente", "mi fa sentire pazza", "mi svaluta"]):
+        expanded.update({"violenza", "verbale", "psicologica", "umiliazioni", "ascolto", "persona"})
 
     if any(term in normalized for term in ["sicilia", "siciliana", "palermo", "catania", "messina", "territorio", "centro vicino"]):
         expanded.update({"sicilia", "territoriale", "1522", "mappatura", "antiviolenza", "centri"})
