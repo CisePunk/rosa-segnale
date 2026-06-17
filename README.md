@@ -223,6 +223,17 @@ npm install
 npm run dev
 ```
 
+## Demo flow suggerito
+
+1. Avviare backend e frontend.
+2. Aprire la vista pubblica di ascolto.
+3. Provare messaggi brevi o ambigui, per esempio:
+   - `aiuto`
+   - `non posso parlare`
+   - `lui sta tornando`
+4. Verificare la risposta orientativa e le risorse rapide.
+5. Aprire l'area interna per controllare dashboard, alert, registro segnalazioni e report.
+
 ## Test
 
 ```bash
