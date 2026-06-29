@@ -53,13 +53,14 @@ Validazioni eseguite:
 Ultima verifica:
 
 ```text
+Controlli totali: 53
 Backend tests: 50 OK
 Frontend build: OK
 npm audit: 0 vulnerabilities
 pip-audit: No known vulnerabilities found
 ```
 
-Data verifica: 17 giugno 2026.
+Data verifica: 29 giugno 2026.
 
 ## Limiti
 

@@ -586,11 +586,14 @@ File coinvolto:
 Verifiche eseguite:
 
 ```text
+Controlli totali: 53
 Backend tests: 50 test OK
 Frontend build: OK
-pip-audit backend/requirements.txt: No known vulnerabilities found
-npm audit --omit=dev: found 0 vulnerabilities
+pip-audit --timeout 60: No known vulnerabilities found
+npm audit --audit-level=moderate: found 0 vulnerabilities
 ```
+
+Data verifica: 29 giugno 2026.
 
 Nota frontend:
 

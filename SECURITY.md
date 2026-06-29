@@ -96,6 +96,35 @@ Prima di condividere il codice verificare sempre che non siano presenti:
 - `dist`;
 - cache o file temporanei.
 
+## Controllo CVE del 29 giugno 2026
+
+Verifiche eseguite:
+
+```text
+Controlli totali: 53
+Backend tests: 50 OK
+Frontend build: OK
+npm audit --audit-level=moderate: 0 vulnerabilities
+pip-audit --timeout 60: No known vulnerabilities found
+```
+
+CVE e advisory analizzate e mitigate:
+
+| Pacchetto | Advisory/CVE | Rilevanza nel codice attuale | Mitigazione |
+|-----------|--------------|------------------------------|-------------|
+| `starlette 1.2.1` | `PYSEC-2026-249` | Bassa: l'app usa input JSON validati da Pydantic e non basa il flusso su `request.form()` | Vincolo esplicito `starlette>=1.3.1` in `backend/requirements.txt` |
+| `starlette 1.2.1` | `PYSEC-2026-248` | Bassa: la logica honeypot usa `request.url.path` e `request.url.query`, non `hostname` o `netloc` come fonte di fiducia | Vincolo esplicito `starlette>=1.3.1` in `backend/requirements.txt` |
+| `msgpack 1.1.2` | `GHSA-6v7p-g79w-8964` | Tooling/dev: dipendenza transitiva usata da strumenti di audit/cache, non dal runtime applicativo | Virtualenv locale aggiornato a `msgpack 1.2.1` |
+| `pip 26.0.1` | `PYSEC-2026-196` | Ambiente di sviluppo: package manager, non distribuito con l'app | Virtualenv locale aggiornato a `pip 26.1.2` |
+| `pip 26.0.1` | `CVE-2026-3219` | Ambiente di sviluppo: package manager, non distribuito con l'app | Virtualenv locale aggiornato a `pip 26.1.2` |
+| `pip 26.0.1` | `CVE-2026-6357` | Ambiente di sviluppo: package manager, non distribuito con l'app | Virtualenv locale aggiornato a `pip 26.1.2` |
+
+Patch versionata applicata:
+
+```text
+backend/requirements.txt -> aggiunto starlette>=1.3.1
+```
+
 ## Limite di responsabilità tecnica
 
 Questo repository non fornisce garanzia di sicurezza per ambienti reali.

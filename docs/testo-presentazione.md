@@ -61,6 +61,7 @@ Il progetto include anche un honeypot applicativo per lo staging. Gli eventi sos
 Verifiche attuali:
 
 ```text
+Controlli totali: 53
 Backend tests: 50 OK
 Frontend build: OK
 npm audit: 0 vulnerabilities
