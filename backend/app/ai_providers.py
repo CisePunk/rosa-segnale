@@ -312,7 +312,7 @@ class OpenAIProvider(TriageProvider):
     def __init__(self) -> None:
         from openai import OpenAI
 
-        model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        model = os.getenv("OPENAI_MODEL", "gpt-6-luna")
         self.name = f"openai/{model}"
         self._model = model
         self._max_output_tokens = int(os.getenv("OPENAI_MAX_OUTPUT_TOKENS", "350"))
@@ -325,6 +325,9 @@ class OpenAIProvider(TriageProvider):
             model=self._model,
             input=prompt,
             max_output_tokens=self._max_output_tokens,
+            reasoning={"effort": "none"},
+            # Vedi assistant_provider: niente conservazione dei testi sensibili.
+            store=False,
         )
 
         raw = response.output_text.strip()

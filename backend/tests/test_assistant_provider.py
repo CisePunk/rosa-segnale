@@ -1,9 +1,11 @@
 import unittest
 import os
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
-from app.assistant_provider import answer_with_assistant, _looks_like_support_request, _routing_context
+from app.ai_providers import OpenAIProvider
+from app.assistant_provider import answer_with_assistant, _answer_with_openai, _looks_like_support_request, _routing_context
 from app.knowledge import retrieve_chunks
+from app.models import TicketCreate
 
 
 class AssistantProviderRoutingTest(unittest.TestCase):
@@ -100,6 +102,31 @@ class AssistantProviderRoutingTest(unittest.TestCase):
         self.assertEqual(provider, "local-rag-keyword-v1")
         self.assertIn("112", answer)
         self.assertIn("pericolo", answer.lower())
+
+    def test_openai_calls_do_not_store_sensitive_text(self) -> None:
+        """OpenAI conserva le risposte di default: qui non deve succedere mai."""
+        client = MagicMock()
+        client.responses.create.return_value.output_text = "Risposta di prova."
+
+        with patch("app.assistant_provider._get_openai_client", return_value=client):
+            _answer_with_openai("Ho paura di tornare a casa.", [])
+        self.assertIs(client.responses.create.call_args.kwargs["store"], False)
+
+        client.responses.create.reset_mock()
+        client.responses.create.return_value.output_text = "non json"
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}, clear=False), patch(
+            "openai.OpenAI", return_value=client
+        ):
+            OpenAIProvider().classify(
+                TicketCreate(
+                    title="Prova",
+                    description="Descrizione di prova abbastanza lunga.",
+                    priority="Media",
+                    business_impact="Prova",
+                    technical_area="Prova",
+                )
+            )
+        self.assertIs(client.responses.create.call_args.kwargs["store"], False)
 
 
 if __name__ == "__main__":

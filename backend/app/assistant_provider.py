@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 
@@ -19,13 +20,17 @@ def answer_with_assistant(question: str, chunks: list[RetrievedChunk]) -> tuple[
 
     try:
         return _answer_with_openai(question, chunks), _openai_provider_name()
-    except Exception:
+    except Exception as exc:
+        # Solo il tipo di errore, mai il messaggio: non deve finire nei log il testo
+        # di chi scrive. Senza questa riga una chiave scaduta non si nota: l'assistente
+        # continua a rispondere dal fallback locale e sembra tutto normale.
+        logging.warning("Assistente: OpenAI non disponibile, uso il fallback locale (%s)", type(exc).__name__)
         return answer_from_chunks(question, chunks), "local-rag-keyword-v1"
 
 
 def _answer_with_openai(question: str, chunks: list[RetrievedChunk]) -> str:
     client = _get_openai_client()
-    model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    model = os.getenv("OPENAI_MODEL", "gpt-6-luna")
     max_output_tokens = int(os.getenv("OPENAI_MAX_OUTPUT_TOKENS", "350"))
 
     context = _format_context(chunks)
@@ -91,7 +96,12 @@ MESSAGGIO_UTENTE:
         model=model,
         input=prompt,
         max_output_tokens=max_output_tokens,
+        # Sui modelli GPT-6 temperature e' ammessa solo con ragionamento "none".
+        reasoning={"effort": "none"},
         temperature=0.75,
+        # Di default OpenAI conserva la risposta almeno 30 giorni: qui si parla di
+        # violenza e stalking, quindi non deve restare nulla di recuperabile via API.
+        store=False,
     )
 
     return _limit_answer(_polish_answer(response.output_text.strip(), question))
@@ -217,7 +227,7 @@ def _contains_any(text: str, needles: list[str]) -> bool:
 
 
 def _openai_provider_name() -> str:
-    return f"openai-rag/{os.getenv('OPENAI_MODEL', 'gpt-4o-mini')}"
+    return f"openai-rag/{os.getenv('OPENAI_MODEL', 'gpt-6-luna')}"
 
 
 def _limit_answer(answer: str) -> str:
