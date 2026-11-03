@@ -71,7 +71,7 @@ Backend: Python, FastAPI, Pydantic, SQLite, OpenAI API opzionale, python-dotenv,
 
 Frontend: React, Vite, lucide-react, CSS custom.
 
-AI: provider configurabile, modello predefinito `gpt-4o-mini`, base di conoscenza interna, fallback locale e regole di sicurezza.
+AI: provider configurabile, modello predefinito `gpt-6-luna`, base di conoscenza interna, fallback locale e regole di sicurezza.
 
 ## Architettura
 
@@ -96,6 +96,7 @@ Risorse rapide:
 - 112
 - 1522
 - YouPol
+- WhatsApp (numero segnaposto dimostrativo, da sostituire con quello reale del servizio)
 
 ### Area interna
 
@@ -120,14 +121,14 @@ Il report può essere rigenerato anche manualmente dalla UI interna o con:
 python3 scripts/generate_weekly_report.py
 ```
 
-Le route interne possono essere protette con Basic Auth impostando entrambe le variabili:
+Le route interne richiedono credenziali. Il frontend le chiede con una schermata di accesso e le tiene solo in memoria, fino al ricaricamento della pagina:
 
 ```env
 INTERNAL_AUTH_USERNAME=replace_with_internal_username
 INTERNAL_AUTH_PASSWORD=replace_with_internal_password
 ```
 
-Se le variabili non sono presenti, l'area interna resta aperta per la demo locale.
+Se le variabili non sono presenti, l'API risponde 503 invece di aprirsi. Solo per lo sviluppo locale, e solo scegliendolo di proposito, si può usare `INTERNAL_AUTH_DISABLED=true`.
 
 ### Confine pubblico / interno
 
@@ -193,19 +194,22 @@ Esempio:
 ```env
 AI_PROVIDER=openai
 OPENAI_API_KEY=replace_with_your_local_openai_key
-OPENAI_MODEL=gpt-4o-mini
+OPENAI_MODEL=gpt-6-luna
 OPENAI_MAX_OUTPUT_TOKENS=350
 AUTO_WEEKLY_REPORT_INTERVAL_SECONDS=604800
 TRIAGE_DB_PATH=triage.db
 REPORTS_DIR=../reports
 ```
 
-Opzionale, per proteggere le route interne con Basic Auth:
+Obbligatorie per l'area interna, e consigliata la terza per l'honeypot:
 
 ```env
 INTERNAL_AUTH_USERNAME=replace_with_internal_username
 INTERNAL_AUTH_PASSWORD=replace_with_internal_password
+HONEYPOT_HASH_SALT=replace_with_a_long_random_secret
 ```
+
+Le chiamate a OpenAI usano `store=False`, così le risposte non restano conservate per il recupero via API.
 
 Non caricare `.env`, `key.env`, `.venv`, `node_modules`, `dist` o database locali su GitHub.
 
@@ -238,12 +242,13 @@ npm run dev
    - `non posso parlare`
    - `lui sta tornando`
 4. Verificare la risposta orientativa e le risorse rapide.
-5. Aprire l'area interna per controllare dashboard, alert, registro segnalazioni e report.
+5. Aprire l'area interna, accedere con le credenziali del `.env` locale e controllare dashboard, alert, registro segnalazioni e report.
 
 ## Test
 
 ```bash
 cd backend
+pip install -r requirements-dev.txt
 python3 -m unittest discover -s tests
 ```
 
@@ -275,7 +280,7 @@ Dettagli:
 
 Per trasformare Rosa Segnale in servizio operativo servono ulteriori implementazioni, tra cui:
 
-- autenticazione robusta con sessioni, ruoli granulari e audit accessi (la Basic Auth opzionale sulle route interne non è sufficiente per produzione);
+- autenticazione robusta con sessioni, ruoli granulari e audit accessi (la Basic Auth sulle route interne non è sufficiente per produzione);
 - cifratura dei dati sensibili a riposo;
 - informative privacy, consenso, retention e procedure GDPR;
 - gestione sicura dei segreti e deploy HTTPS;
@@ -311,8 +316,7 @@ Un testo breve da leggere o adattare per spiegare il progetto si trova in:
 - dashboard interna con KPI, alert, follow-up, registro ticket e monitoraggio honeypot
 - documentazione tecnica aggiornata in `docs/`
 - screenshot dimostrativi in `docs/screenshots/`
-- 53 controlli eseguiti alla verifica del 29 giugno 2026
-- 50 test backend OK alla verifica del 29 giugno 2026
-- frontend build OK alla verifica del 29 giugno 2026
-- `npm audit`: 0 vulnerabilità alla verifica del 29 giugno 2026
-- `pip-audit`: nessuna vulnerabilità nota alla verifica del 29 giugno 2026
+- 55 test backend OK alla verifica del 3 novembre 2026
+- frontend build OK alla verifica del 3 novembre 2026
+- `npm audit`: 0 vulnerabilità alla verifica del 3 novembre 2026
+- `pip-audit`: nessuna vulnerabilità nota alla verifica del 3 novembre 2026

@@ -31,6 +31,8 @@ Il database locale, i report generati, i log e gli eventuali file `.env` non dev
 
 Quando il provider OpenAI è attivo, il testo inviato al punto di ascolto o alla classificazione può essere trasmesso al provider AI configurato.
 
+Le chiamate a OpenAI usano `store=False`, quindi le risposte non vengono conservate per il recupero via API. OpenAI può comunque tenere log antiabuso fino a 30 giorni, salvo accordi di conservazione zero.
+
 Prima di un uso reale è necessario definire una policy chiara su:
 
 - quali dati possono essere inviati al provider AI;

@@ -126,7 +126,7 @@ T01-T04 sono minacce a impatto molto alto. Il dato compromesso può non essere s
 | Riferimenti rapidi a 112, 1522, YouPol | T14, T17 | Parziale |
 | Regole di sicurezza post-classificazione e knowledge base interna | T12, T14, T16 | Parziale |
 | Fallback locale se il provider non è disponibile | T15, T18 | Parziale |
-| Basic Auth opzionale sulle route interne | T08 | Solo demo |
+| Basic Auth obbligatoria sulle route interne, chiusa se non configurata | T08 | Solo demo |
 | Esclusione dal versionamento di `.env`, DB, report e build | T20 | Buona |
 | Test automatici su triage, policy chat, provider e auth | T12, T14, T15 | Buona per il perimetro testato |
 | Cross-review multi-modello su prompt, privacy, CVE, injection, bias ed edge case | T12, T16 | Buona come pratica di processo |

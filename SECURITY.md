@@ -26,7 +26,7 @@ Non inserire mai nel repository:
 
 ## Ambito tecnico
 
-Il progetto include alcune misure minime utili per una demo locale, come separazione tra vista pubblica e area interna, fallback locale, configurazione tramite `.env` e Basic Auth opzionale sulle route interne.
+Il progetto include alcune misure minime utili per una demo locale, come separazione tra vista pubblica e area interna, fallback locale, configurazione tramite `.env` e Basic Auth obbligatoria sulle route interne.
 
 Queste misure non sono sufficienti per un uso reale o pubblico.
 
@@ -76,7 +76,7 @@ Prima di un uso reale è necessario definire controlli specifici per:
 
 L'area interna non deve essere esposta pubblicamente senza autenticazione robusta, autorizzazioni granulari, audit accessi e protezione delle route.
 
-La Basic Auth opzionale serve solo per una demo locale o controllata. Non deve essere considerata una misura sufficiente per un servizio reale.
+La Basic Auth serve solo per una demo locale o controllata. Non deve essere considerata una misura sufficiente per un servizio reale.
 
 ## Dati locali
 
@@ -124,6 +124,28 @@ Patch versionata applicata:
 ```text
 backend/requirements.txt -> aggiunto starlette>=1.3.1
 ```
+
+## Controllo CVE del 3 novembre 2026
+
+Verifiche eseguite:
+
+```text
+Backend tests: 55 OK, anche su copia pulita con Python 3.12
+Frontend build: OK
+npm audit: 0 vulnerabilities
+pip-audit: No known vulnerabilities found
+```
+
+Advisory analizzate e mitigate:
+
+| Pacchetto | Advisory/CVE | Rilevanza nel codice attuale | Mitigazione |
+|-----------|--------------|------------------------------|-------------|
+| `certifi 2026.5.20` | `PYSEC-2026-4320` | Alta: protegge il collegamento HTTPS verso OpenAI; conteneva una CA compromessa | Minimo `certifi>=2026.10.18`, installata 2026.10.23 |
+| `anyio 4.13.0` | `PYSEC-2026-4024`, `PYSEC-2026-4025` | Bassa: l'app non usa domini internazionalizzati né process pool | Minimo `anyio>=4.14.2`, installata 4.16.0 |
+| `vite 8.0.16`, `postcss`, `nanoid`, `source-map-js` | `GHSA-rq7h-c2jc-7f22`, `GHSA-9jrq-w75r-8gcw` e correlate | Sviluppo e build: non finiscono nel pacchetto servito | `npm audit fix`, Vite 8.3.5 |
+| `urllib3`, `filelock`, `msgpack`, `pip` | Vedi `pip-audit` | Strumenti di sviluppo, non usati dall'app in esecuzione | Virtualenv locale aggiornato |
+
+Le versioni esatte verificate sono in `backend/requirements.lock`, usato dal Dockerfile.
 
 ## Limite di responsabilità tecnica
 

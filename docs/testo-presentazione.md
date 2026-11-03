@@ -31,7 +31,7 @@ Il frontend è sviluppato con React, Vite e CSS custom.
 La parte AI usa:
 
 - provider configurabile
-- modello predefinito `gpt-4o-mini`
+- modello predefinito `gpt-6-luna`
 - base di conoscenza interna
 - fallback locale
 - regole di sicurezza post-classificazione
