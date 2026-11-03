@@ -1,0 +1,5 @@
+# Per test e controlli di sicurezza: non serve all'app in esecuzione.
+-r requirements.txt
+httpx>=0.28,<1
+pip-audit>=2.9
+pytest>=9.2,<10
