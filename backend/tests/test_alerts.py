@@ -15,6 +15,12 @@ class AlertsTest(unittest.TestCase):
             {
                 "TRIAGE_DB_PATH": self.db_path,
                 "AI_PROVIDER": "mock",
+                # Qui non si prova l'autenticazione, si provano alert e honeypot.
+                # Va dichiarato lo stesso: da quando l'area interna fallisce
+                # CHIUSA, "non ho configurato niente" significa 503, non accesso
+                # libero. Senza questa riga la prova dipenderebbe dal .env della
+                # macchina su cui gira.
+                "INTERNAL_AUTH_DISABLED": "true",
             },
             clear=False,
         )

@@ -88,5 +88,12 @@ def _client_ip(request: Request) -> str:
 
 
 def _hash_ip(ip_address: str) -> str:
-    salt = os.getenv("HONEYPOT_HASH_SALT", "rosa-segnale-local-honeypot")
+    salt = (os.getenv("HONEYPOT_HASH_SALT") or "").strip()
+    # Senza un sale segreto questo campo NON anonimizza niente: gli IPv4 sono
+    # quattro miliardi, e con il sale noto si invertono per forza bruta in
+    # pochi secondi. Il valore di ripiego stava scritto nel repository, che e'
+    # pubblico: valeva come sale quanto nessun sale. Meglio non registrare
+    # l'indirizzo che registrarlo credendolo protetto.
+    if not salt:
+        return "senza-sale"
     return hashlib.sha256(f"{salt}:{ip_address}".encode("utf-8")).hexdigest()[:24]

@@ -62,18 +62,53 @@ AI_PROVIDER_NAME = os.getenv("AI_PROVIDER", "mock")
 provider = get_triage_provider(AI_PROVIDER_NAME)
 internal_security = HTTPBasic(auto_error=False)
 
+# L'assistente e' la parte PUBBLICA del prodotto (chi cerca aiuto non fa login),
+# quindi non e' protetto da autenticazione: l'unico freno e' questo, e deve
+# funzionare davvero perche' ogni risposta costa.
 _ASSISTANT_RATE: dict[str, float] = {}
 _ASSISTANT_RATE_SECONDS = int(os.getenv("ASSISTANT_RATE_LIMIT_SECONDS", "5"))
+# Tetto anti-crescita: senza, la mappa aumenta a ogni IP nuovo e non cala mai.
+_ASSISTANT_RATE_MAX_VOCI = 10_000
+# Dietro un reverse proxy, request.client.host e' l'IP DEL PROXY: un secchio solo
+# per tutti, e un utente ogni 5 secondi blocca l'intero servizio. Imposta questa
+# variabile SOLO se davanti c'e' un proxy fidato che scrive lui l'header
+# (altrimenti e' falsificabile e il freno si aggira cambiando header).
+_TRUST_PROXY_HEADER = (os.getenv("TRUST_PROXY_HEADER") or "").strip().lower()
+
+
+def _ip_client(request: Request) -> str:
+    if _TRUST_PROXY_HEADER:
+        grezzo = request.headers.get(_TRUST_PROXY_HEADER)
+        if grezzo:
+            primo = grezzo.split(",")[0].strip()
+            if primo:
+                return primo
+    return request.client.host if request.client else "sconosciuto"
+
+
+def _purga_scaduti(adesso: float) -> None:
+    scaduti = [ip for ip, quando in _ASSISTANT_RATE.items()
+               if adesso - quando > _ASSISTANT_RATE_SECONDS]
+    for ip in scaduti:
+        del _ASSISTANT_RATE[ip]
+
+
+# Origini di SVILUPPO. Valgono solo finche' nessuno ha configurato le proprie:
+# tenerle sempre ammesse significherebbe che, in produzione, una pagina servita
+# su quella porta sulla macchina di un operatore gia' autenticato puo' leggere
+# le segnalazioni cross-origin (le credenziali Basic il browser le rimanda da se',
+# e qui allow_credentials e' True).
+ORIGINI_SVILUPPO = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
 
 def allowed_cors_origins() -> list[str]:
-    default_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
-    extra_origins = [
+    configurate = [
         origin.strip()
         for origin in os.getenv("CORS_ALLOW_ORIGINS", "").split(",")
         if origin.strip()
     ]
-    return [*default_origins, *extra_origins]
+    # Se ne hai configurate, quelle e basta: e' il caso della produzione.
+    return configurate or list(ORIGINI_SVILUPPO)
 
 
 @asynccontextmanager
@@ -124,17 +159,33 @@ async def honeypot_monitor(request: Request, call_next):
     return await call_next(request)
 
 
+# Interruttore ESPLICITO per lo sviluppo locale. Deve essere una scelta scritta,
+# non l'effetto di una variabile dimenticata: prima, se le credenziali mancavano,
+# l'area interna si apriva da sola e le segnalazioni erano di chiunque passasse.
+# Stesso principio di neurodesk.security.strict: di base si fallisce CHIUSI.
+def _auth_disattivata() -> bool:
+    return (os.getenv("INTERNAL_AUTH_DISABLED") or "").strip().lower() in {"1", "true", "si", "yes"}
+
+
 def require_internal_auth(
     credentials: HTTPBasicCredentials | None = Depends(internal_security),
 ) -> None:
+    if _auth_disattivata():
+        return None
+
     username = (os.getenv("INTERNAL_AUTH_USERNAME") or "").strip()
     password = (os.getenv("INTERNAL_AUTH_PASSWORD") or "").strip()
 
-    if not username and not password:
-        return None
-
+    # Credenziali assenti = servizio non configurato, non "porta aperta".
     if not username or not password:
-        raise HTTPException(status_code=500, detail="Autenticazione interna non configurata correttamente.")
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Area interna non configurata: imposta INTERNAL_AUTH_USERNAME e "
+                "INTERNAL_AUTH_PASSWORD. Solo in sviluppo locale puoi usare "
+                "INTERNAL_AUTH_DISABLED=true."
+            ),
+        )
 
     authenticated = (
         credentials is not None
@@ -278,8 +329,10 @@ def preview_chunks(
 
 @app.post("/assistant/answer", response_model=RagAnswerResponse)
 def answer_with_rag(body: RagAnswerRequest, http_request: Request) -> RagAnswerResponse:
-    client_ip = http_request.client.host if http_request.client else "unknown"
+    client_ip = _ip_client(http_request)
     now = monotonic()
+    if len(_ASSISTANT_RATE) > _ASSISTANT_RATE_MAX_VOCI:
+        _purga_scaduti(now)
     if now - _ASSISTANT_RATE.get(client_ip, 0.0) < _ASSISTANT_RATE_SECONDS:
         raise HTTPException(status_code=429, detail="Troppe richieste. Attendi qualche secondo e riprova.")
     _ASSISTANT_RATE[client_ip] = now
