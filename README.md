@@ -316,7 +316,7 @@ Un testo breve da leggere o adattare per spiegare il progetto si trova in:
 - dashboard interna con KPI, alert, follow-up, registro ticket e monitoraggio honeypot
 - documentazione tecnica aggiornata in `docs/`
 - screenshot dimostrativi in `docs/screenshots/`
-- 55 test backend OK alla verifica del 3 novembre 2026
+- 74 test backend OK alla verifica del 3 novembre 2026
 - frontend build OK alla verifica del 3 novembre 2026
 - `npm audit`: 0 vulnerabilità alla verifica del 3 novembre 2026
 - `pip-audit`: nessuna vulnerabilità nota alla verifica del 3 novembre 2026

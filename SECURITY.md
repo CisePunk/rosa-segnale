@@ -147,6 +147,26 @@ Advisory analizzate e mitigate:
 
 Le versioni esatte verificate sono in `backend/requirements.lock`, usato dal Dockerfile.
 
+## Pentest locale del 3 novembre 2026
+
+Eseguito su una copia isolata, con database temporaneo e AI simulata, usando `bandit`, `schemathesis`, `sqlmap` e prove manuali. Non è un penetration test professionale né una verifica in produzione.
+
+Nessuna injection SQL, XSS eseguibile, path traversal, aggiramento dell'autenticazione o esecuzione di comandi. Corretti:
+
+| Problema | Correzione |
+|----------|------------|
+| Tentativi di password illimitati sull'area interna | Blocco per IP: 8 errori in 15 minuti, 15 minuti di blocco |
+| Limite dell'assistente aggirabile con `X-Forwarded-For` | Si legge l'ultimo valore, aggiunto dal proxy, e solo con `TRUST_PROXY_HEADER` |
+| Nessun tetto alla spesa AI | 200 richieste al minuto, poi risposte dalle fonti locali |
+| CSRF con POST senza corpo | Rifiuto delle origini non ammesse sui metodi di scrittura |
+| Corpi di richiesta illimitati | Massimo 1 MB |
+| Eventi honeypot illimitati e IP falsificabile | Massimo 5.000 eventi, stessa lettura dell'IP del resto dell'app |
+| Errori 500 con numeri enormi, Unicode spezzato, NaN | Risposta 422, senza ripetere il testo ricevuto |
+| Header di sicurezza assenti | Aggiunti alle risposte dell'API |
+| Segreti deboli non segnalati, `/docs` pubblico | `SECURITY_STRICT=true` blocca l'avvio e spegne la documentazione API |
+
+Restano da fare prima di un uso reale: header di sicurezza sul frontend e HTTPS tramite reverse proxy, ruoli e audit accessi, cifratura a riposo, quick exit, prova della prompt injection con il modello reale.
+
 ## Limite di responsabilità tecnica
 
 Questo repository non fornisce garanzia di sicurezza per ambienti reali.

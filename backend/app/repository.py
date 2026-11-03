@@ -24,6 +24,8 @@ from app.models import (
 DB_PATH = Path(os.getenv("TRIAGE_DB_PATH", Path(__file__).resolve().parent.parent / "triage.db"))
 
 
+HONEYPOT_MAX_EVENTI = 5_000
+
 @contextmanager
 def get_connection() -> Iterator[sqlite3.Connection]:
     connection = sqlite3.connect(DB_PATH)
@@ -269,6 +271,12 @@ def create_honeypot_event(
                 user_agent,
                 int(query_present),
             ),
+        )
+        # Le scritture arrivano da chiunque, senza login: senza tetto il database
+        # cresce a piacere di chi le manda.
+        connection.execute(
+            "DELETE FROM honeypot_events WHERE id <= ?",
+            (cursor.lastrowid - HONEYPOT_MAX_EVENTI,),
         )
         row = connection.execute(
             "SELECT * FROM honeypot_events WHERE id = ?",

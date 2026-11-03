@@ -37,6 +37,7 @@ import LandingPage from "./landing/LandingPage.jsx";
 
 const followUpStatuses = ["Da valutare", "In corso", "Ricontatto pianificato", "Escalation esterna", "Chiuso"];
 const HUMAN_HANDOFF_LABEL = "Richiede persona reale";
+const TOO_MANY_ATTEMPTS = "Troppi tentativi. Riprova tra 15 minuti.";
 const YOUPOL_URL = "https://youpol.poliziadistato.it/landing";
 // Numero WhatsApp del bottone rapido. Formato internazionale senza "+", spazi o trattini
 // (es. "393401234567"). SOSTITUISCI il segnaposto con il numero reale del servizio.
@@ -170,15 +171,14 @@ function App() {
       setAlerts(alertData);
       setHoneypotEvents(honeypotData);
       setInternalLocked(false);
-      return true;
     } catch (error) {
-      if (error.status === 401) {
+      if (error.status === 401 || error.status === 429) {
         setInternalLocked(true);
+        if (error.status === 429) setLoginError(TOO_MANY_ATTEMPTS);
       } else {
         setInternalLocked(false);
         setSampleStatus({ type: "error", message: error.message });
       }
-      return false;
     } finally {
       setLoading(false);
     }
@@ -186,11 +186,19 @@ function App() {
 
   async function handleInternalLogin(username, password) {
     setLoginError("");
+    setLoading(true);
     setInternalCredentials(username, password);
-    if (!(await loadData())) {
+    try {
+      // Una sola richiesta di prova: quelle in parallelo di loadData conterebbero come
+      // quattro tentativi, e due password sbagliate basterebbero a farsi bloccare.
+      await fetchDashboard();
+    } catch (error) {
       setInternalCredentials(null);
-      setLoginError("Credenziali non valide.");
+      setLoading(false);
+      setLoginError(error.status === 429 ? TOO_MANY_ATTEMPTS : "Credenziali non valide.");
+      return;
     }
+    await loadData();
   }
 
   // I dati interni si chiedono solo entrando nell'area interna: la vista pubblica

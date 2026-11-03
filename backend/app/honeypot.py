@@ -67,23 +67,25 @@ def inspect_request(request: Request) -> HoneypotMatch | None:
         method=request.method[:12],
         reason=reason,
         risk_score=risk_score,
-        ip_hash=_hash_ip(_client_ip(request)),
+        ip_hash=_hash_ip(client_ip(request)),
         user_agent=request.headers.get("user-agent", "")[:300],
         query_present=bool(request.url.query),
     )
 
 
-def _client_ip(request: Request) -> str:
-    forwarded_headers = (
-        request.headers.get("cf-connecting-ip"),
-        request.headers.get("x-real-ip"),
-        request.headers.get("x-forwarded-for", "").split(",")[0].strip(),
-    )
-
-    for value in forwarded_headers:
-        if value:
-            return value
-
+def client_ip(request: Request) -> str:
+    # Dietro un reverse proxy, request.client.host e' l'IP DEL PROXY: un secchio solo
+    # per tutti. TRUST_PROXY_HEADER va impostata SOLO se davanti c'e' un proxy fidato:
+    # altrimenti l'header lo scrive chi fa la richiesta e si falsifica a piacere.
+    intestazione = (os.getenv("TRUST_PROXY_HEADER") or "").strip().lower()
+    if intestazione:
+        grezzo = request.headers.get(intestazione)
+        if grezzo:
+            # L'ULTIMO valore: lo aggiunge il proxy. I primi li manda il client, e
+            # prendendo quelli il freno si aggirava cambiando header a ogni richiesta.
+            ultimo = grezzo.split(",")[-1].strip()
+            if ultimo:
+                return ultimo
     return request.client.host if request.client else "unknown"
 
 
