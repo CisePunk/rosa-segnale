@@ -523,7 +523,7 @@ Bottone Rosa: 0.0.0.0:5001
 Esempio IP locale:
 
 ```text
-http://192.168.1.124:5001
+http://<IP-rete-locale>:5001
 ```
 
 Utilità:
@@ -568,7 +568,7 @@ Preparazione per:
 Il backend ora permette origini CORS aggiuntive tramite:
 
 ```env
-CORS_ALLOW_ORIGINS=http://192.168.1.124:5173
+CORS_ALLOW_ORIGINS=http://<IP-rete-locale>:5173
 ```
 
 Utilità:
