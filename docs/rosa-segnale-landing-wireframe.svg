@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="900" viewBox="0 0 860 900" font-family="Inter, Arial, sans-serif">
+  <rect width="860" height="900" fill="#ffffff"/>
+
+  <!-- ===== HEADER ===== -->
+  <rect x="30" y="24" width="84" height="30" rx="15" fill="#c7ccd0"/>
+  <g font-size="11" font-weight="700" fill="#9aa0a5">
+    <text x="360" y="44">HOME</text>
+    <text x="430" y="44">COME FUNZIONA</text>
+    <text x="560" y="44">CONTATTI</text>
+  </g>
+  <rect x="720" y="22" width="110" height="34" rx="17" fill="#c7ccd0"/>
+  <text x="775" y="44" text-anchor="middle" font-size="10" font-weight="800" fill="#565b60">PROVA LA DEMO</text>
+  <rect x="778" y="6" width="60" height="16" rx="8" fill="#dbe4fb"/>
+  <text x="808" y="18" text-anchor="middle" font-size="9" font-weight="800" fill="#3b5bdb">HEADER</text>
+  <line x1="0" y1="72" x2="860" y2="72" stroke="#e2e5e7"/>
+
+  <!-- ===== HERO ===== -->
+  <rect x="30" y="90" width="52" height="18" rx="9" fill="#d7f0d9"/>
+  <text x="56" y="103" text-anchor="middle" font-size="9" font-weight="800" fill="#2f9e44">HERO</text>
+  <rect x="30" y="132" width="380" height="22" rx="6" fill="#c8ced2"/>
+  <rect x="30" y="162" width="270" height="22" rx="6" fill="#c8ced2"/>
+  <rect x="30" y="202" width="340" height="10" rx="5" fill="#e2e5e7"/>
+  <rect x="30" y="220" width="300" height="10" rx="5" fill="#e2e5e7"/>
+  <rect x="30" y="252" width="180" height="42" rx="21" fill="#c7ccd0"/>
+  <text x="120" y="278" text-anchor="middle" font-size="12" font-weight="800" fill="#565b60">PROVA LA DEMO</text>
+  <rect x="226" y="252" width="150" height="42" rx="21" fill="#ffffff" stroke="#c7ccd0" stroke-width="2"/>
+  <text x="301" y="278" text-anchor="middle" font-size="11" font-weight="700" fill="#8a8f94">SCOPRI</text>
+  <text x="30" y="322" font-size="11" fill="#a4a9ad">&#10003; gratis · nessun dato richiesto</text>
+  <rect x="470" y="120" width="360" height="200" rx="10" fill="#eceef0" stroke="#cfd3d6"/>
+  <line x1="470" y1="120" x2="830" y2="320" stroke="#cfd3d6"/>
+  <line x1="830" y1="120" x2="470" y2="320" stroke="#cfd3d6"/>
+  <line x1="0" y1="360" x2="860" y2="360" stroke="#e2e5e7"/>
+
+  <!-- ===== COME FUNZIONA ===== -->
+  <rect x="30" y="380" width="118" height="18" rx="9" fill="#fdf3c4"/>
+  <text x="89" y="393" text-anchor="middle" font-size="9" font-weight="800" fill="#b8901f">COME FUNZIONA</text>
+  <rect x="330" y="418" width="200" height="20" rx="6" fill="#c8ced2"/>
+  <!-- card 1 -->
+  <rect x="30" y="460" width="250" height="130" rx="10" fill="#ffffff" stroke="#d3d7da"/>
+  <rect x="50" y="480" width="34" height="34" rx="8" fill="#e4e8ea"/>
+  <rect x="50" y="528" width="120" height="12" rx="6" fill="#d3d8db"/>
+  <rect x="50" y="552" width="210" height="8" rx="4" fill="#e2e5e7"/>
+  <rect x="50" y="568" width="170" height="8" rx="4" fill="#e2e5e7"/>
+  <!-- card 2 -->
+  <rect x="305" y="460" width="250" height="130" rx="10" fill="#ffffff" stroke="#d3d7da"/>
+  <rect x="325" y="480" width="34" height="34" rx="8" fill="#e4e8ea"/>
+  <rect x="325" y="528" width="120" height="12" rx="6" fill="#d3d8db"/>
+  <rect x="325" y="552" width="210" height="8" rx="4" fill="#e2e5e7"/>
+  <rect x="325" y="568" width="170" height="8" rx="4" fill="#e2e5e7"/>
+  <!-- card 3 -->
+  <rect x="580" y="460" width="250" height="130" rx="10" fill="#ffffff" stroke="#d3d7da"/>
+  <rect x="600" y="480" width="34" height="34" rx="8" fill="#e4e8ea"/>
+  <rect x="600" y="528" width="120" height="12" rx="6" fill="#d3d8db"/>
+  <rect x="600" y="552" width="210" height="8" rx="4" fill="#e2e5e7"/>
+  <rect x="600" y="568" width="170" height="8" rx="4" fill="#e2e5e7"/>
+  <line x1="0" y1="620" x2="860" y2="620" stroke="#e2e5e7"/>
+
+  <!-- ===== CTA DEMO (la parte importante) ===== -->
+  <rect x="30" y="638" width="86" height="18" rx="9" fill="#fbdce8"/>
+  <text x="73" y="651" text-anchor="middle" font-size="9" font-weight="800" fill="#c2255c">CTA · DEMO</text>
+  <rect x="30" y="666" width="800" height="118" rx="14" fill="#f4f6f7" stroke="#cfd3d6" stroke-dasharray="6 5"/>
+  <rect x="280" y="696" width="300" height="20" rx="6" fill="#c8ced2"/>
+  <rect x="330" y="726" width="200" height="8" rx="4" fill="#e2e5e7"/>
+  <rect x="345" y="742" width="170" height="42" rx="21" fill="#c7ccd0"/>
+  <text x="430" y="768" text-anchor="middle" font-size="12" font-weight="800" fill="#565b60">PROVA LA DEMO</text>
+  <line x1="0" y1="812" x2="860" y2="812" stroke="#e2e5e7"/>
+
+  <!-- ===== FOOTER ===== -->
+  <rect x="30" y="828" width="52" height="18" rx="9" fill="#e6e8ea"/>
+  <text x="56" y="841" text-anchor="middle" font-size="9" font-weight="800" fill="#7b8085">FOOTER</text>
+  <rect x="30" y="856" width="80" height="26" rx="6" fill="#c7ccd0"/>
+  <g font-size="10" font-weight="700" fill="#9aa0a5">
+    <text x="300" y="862">LINK RAPIDI</text>
+    <text x="480" y="862">RISORSE</text>
+    <text x="660" y="862">CONTATTI</text>
+  </g>
+  <g fill="#e2e5e7">
+    <rect x="300" y="872" width="110" height="8" rx="4"/><rect x="480" y="872" width="110" height="8" rx="4"/><rect x="660" y="872" width="130" height="8" rx="4"/>
+  </g>
+  <text x="430" y="896" text-anchor="middle" font-size="10" fill="#a4a9ad">© 2025 Rosa Segnale · 112 · 1522</text>
+</svg>

@@ -1041,6 +1041,18 @@ label small {
   cursor: not-allowed;
 }
 
+.internal-login {
+  margin: 48px auto;
+  max-width: 420px;
+  width: 100%;
+}
+
+.internal-login form {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+
 .notice {
   align-items: center;
   border-radius: 8px;

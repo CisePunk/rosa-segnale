@@ -2,6 +2,13 @@ const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL || "h
 const DEFAULT_TIMEOUT_MS = 10000;
 const ASSISTANT_TIMEOUT_MS = 30000;
 
+// Credenziali dell'area interna: solo in memoria, spariscono ricaricando la pagina.
+let internalAuthHeader = null;
+
+export function setInternalCredentials(username, password) {
+  internalAuthHeader = username ? `Basic ${btoa(`${username}:${password}`)}` : null;
+}
+
 function normalizeApiBaseUrl(value) {
   const parsedUrl = new URL(value);
 
@@ -31,6 +38,7 @@ async function request(path, options = {}) {
     const response = await fetch(`${API_BASE_URL}${path}`, {
       headers: {
         "Content-Type": "application/json",
+        ...(internalAuthHeader ? { Authorization: internalAuthHeader } : {}),
         ...(fetchOptions.headers || {}),
       },
       ...fetchOptions,
@@ -38,7 +46,9 @@ async function request(path, options = {}) {
     });
 
     if (!response.ok) {
-      throw new Error(await safeErrorMessage(response));
+      const error = new Error(await safeErrorMessage(response));
+      error.status = response.status;
+      throw error;
     }
 
     return response.json();

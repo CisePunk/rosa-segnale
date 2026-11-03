@@ -10,6 +10,7 @@ import {
   FileBarChart,
   FileText,
   Gauge,
+  LockKeyhole,
   MessageSquareText,
   PhoneCall,
   RefreshCw,
@@ -26,15 +27,22 @@ import {
   fetchTickets,
   fetchWeeklyReport,
   seedSampleTickets,
+  setInternalCredentials,
   takeAlert,
   updateAlert,
   updateTicketFollowUp,
 } from "./api";
 import "./styles.css";
+import LandingPage from "./landing/LandingPage.jsx";
 
 const followUpStatuses = ["Da valutare", "In corso", "Ricontatto pianificato", "Escalation esterna", "Chiuso"];
 const HUMAN_HANDOFF_LABEL = "Richiede persona reale";
 const YOUPOL_URL = "https://youpol.poliziadistato.it/landing";
+// Numero WhatsApp del bottone rapido. Formato internazionale senza "+", spazi o trattini
+// (es. "393401234567"). SOSTITUISCI il segnaposto con il numero reale del servizio.
+const WHATSAPP_NUMBER = "393000000000";
+const WHATSAPP_TEXT = "Ciao, avrei bisogno di parlare con qualcuno.";
+const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_TEXT)}`;
 const MAX_ASSISTANT_CONTEXT_CHARS = 1100;
 const MIN_ASSISTANT_MESSAGE_CHARS = 4;
 const QUICK_RESOURCES = [
@@ -56,6 +64,13 @@ const QUICK_RESOURCES = [
     label: "YouPol",
     description: "Polizia di Stato",
     href: YOUPOL_URL,
+    external: true,
+    urgent: false,
+  },
+  {
+    label: "WhatsApp",
+    description: "Scrivi in chat",
+    href: WHATSAPP_URL,
     external: true,
     urgent: false,
   },
@@ -96,7 +111,24 @@ const aodCapabilities = [
 
 function App() {
   const safetyModalRef = useRef(null);
-  const [showSafetyNotice, setShowSafetyNotice] = useState(true);
+  // Mostra l'avviso una volta per sessione. Usiamo sessionStorage (NON localStorage):
+  // niente popup a ogni ricarica, ma nessuna traccia permanente sul dispositivo
+  // quando la scheda si chiude — coerente con la privacy-by-design del portale.
+  const [showSafetyNotice, setShowSafetyNotice] = useState(() => {
+    try {
+      return sessionStorage.getItem("rs_safety_ack") !== "1";
+    } catch {
+      return true;
+    }
+  });
+  const dismissSafetyNotice = () => {
+    setShowSafetyNotice(false);
+    try {
+      sessionStorage.setItem("rs_safety_ack", "1");
+    } catch {
+      /* storage non disponibile: si chiude comunque per questa vista */
+    }
+  };
   const [activeView, setActiveView] = useState("listen");
   const [health, setHealth] = useState(null);
   const [dashboard, setDashboard] = useState(null);
@@ -119,6 +151,8 @@ function App() {
   const [reportStatus, setReportStatus] = useState({ type: "idle", message: "" });
   const [reportLoading, setReportLoading] = useState(false);
   const [alertLoadingId, setAlertLoadingId] = useState(null);
+  const [internalLocked, setInternalLocked] = useState(true);
+  const [loginError, setLoginError] = useState("");
 
   async function loadData() {
     setLoading(true);
@@ -135,16 +169,35 @@ function App() {
       setTickets(ticketData);
       setAlerts(alertData);
       setHoneypotEvents(honeypotData);
+      setInternalLocked(false);
+      return true;
     } catch (error) {
-      setSampleStatus({ type: "error", message: error.message });
+      if (error.status === 401) {
+        setInternalLocked(true);
+      } else {
+        setInternalLocked(false);
+        setSampleStatus({ type: "error", message: error.message });
+      }
+      return false;
     } finally {
       setLoading(false);
     }
   }
 
+  async function handleInternalLogin(username, password) {
+    setLoginError("");
+    setInternalCredentials(username, password);
+    if (!(await loadData())) {
+      setInternalCredentials(null);
+      setLoginError("Credenziali non valide.");
+    }
+  }
+
+  // I dati interni si chiedono solo entrando nell'area interna: la vista pubblica
+  // non deve nemmeno tentare di leggerli.
   useEffect(() => {
-    loadData();
-  }, []);
+    if (activeView === "internal") loadData();
+  }, [activeView]);
 
   useEffect(() => {
     if (!showSafetyNotice || !safetyModalRef.current) return undefined;
@@ -359,7 +412,7 @@ function App() {
                 codici fiscali o dati di altre persone. Usa informazioni fittizie o anonimizzate.
               </p>
               <div className="safety-actions">
-                <button className="primary-button safety-button" type="button" onClick={() => setShowSafetyNotice(false)}>
+                <button className="primary-button safety-button" type="button" onClick={dismissSafetyNotice}>
                   Ho capito
                 </button>
                 <a className="secondary-button safety-button" href={YOUPOL_URL} target="_blank" rel="noreferrer">
@@ -403,7 +456,7 @@ function App() {
               Area interna
             </button>
           </div>
-          {activeView === "internal" && (
+          {activeView === "internal" && !internalLocked && (
             <div className="system-status">
               <span className="status-dot" />
               <span className="provider-name">{health?.provider || "modello in caricamento"}</span>
@@ -425,6 +478,8 @@ function App() {
           setRagQuestion={setRagQuestion}
           signalCode={signalCode}
         />
+      ) : internalLocked ? (
+        <InternalLogin error={loginError} loading={loading} onSubmit={handleInternalLogin} />
       ) : (
         <InternalView
           averageRisk={averageRisk}
@@ -524,6 +579,52 @@ function ListenView({
         />
       </section>
     </>
+  );
+}
+
+function InternalLogin({ error, loading, onSubmit }) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    onSubmit(username.trim(), password);
+    setPassword("");
+  }
+
+  return (
+    <section className="panel internal-login">
+      <div className="panel-heading">
+        <h2>Accesso area interna</h2>
+        <LockKeyhole size={20} />
+      </div>
+      <p>Dashboard, segnalazioni e alert sono riservati agli operatori.</p>
+      <form onSubmit={handleSubmit}>
+        <label>
+          Utente
+          <input autoComplete="username" onChange={(event) => setUsername(event.target.value)} required value={username} />
+        </label>
+        <label>
+          Password
+          <input
+            autoComplete="current-password"
+            onChange={(event) => setPassword(event.target.value)}
+            required
+            type="password"
+            value={password}
+          />
+        </label>
+        {error && (
+          <p className="notice error" role="alert">
+            <AlertTriangle size={16} />
+            {error}
+          </p>
+        )}
+        <button className="primary-button" disabled={loading} type="submit">
+          Entra
+        </button>
+      </form>
+    </section>
   );
 }
 
@@ -1326,4 +1427,7 @@ function TicketTable({ onSelectTicket, selectedTicketId, tickets }) {
   );
 }
 
-createRoot(document.getElementById("root")).render(<App />);
+// Routing minimale: /landing mostra la landing commerciale, il resto l'applicazione (demo).
+const landingPath = window.location.pathname.replace(/\/+$/, "");
+const RootComponent = landingPath === "/landing" ? LandingPage : App;
+createRoot(document.getElementById("root")).render(<RootComponent />);
