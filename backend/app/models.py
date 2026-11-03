@@ -202,7 +202,7 @@ class RagAnswerRequest(BaseModel):
 
 
 class RetrievedChunk(KnowledgeChunk):
-    score: int
+    score: float
 
 
 class RagAnswerResponse(BaseModel):

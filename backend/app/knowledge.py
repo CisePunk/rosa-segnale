@@ -1,6 +1,13 @@
+import math
+import os
 import re
+from collections import Counter
 
 from app.models import KnowledgeChunk, RetrievedChunk
+
+# Un token accetta anche le lettere accentate: il vecchio [a-zA-Z0-9]+ spezzava
+# "comunità", "può", "perché" perdendo proprio i termini che contano.
+_WORD_RE = re.compile(r"[0-9a-zàáâäèéêëìíîïòóôöùúûüçñ]+")
 
 MAX_RAG_ANSWER_CHARS = 1100
 
@@ -288,6 +295,20 @@ STOP_WORDS = {
     "una",
 }
 
+# Parole-funzione italiane: sono rumore per il recupero e facevano combaciare i
+# chunk "per caso" (es. "come" in "province come Palermo" agganciava una domanda
+# su una ricetta). Le tolgo dai token. NB: le regole di sicurezza in
+# _expand_query_terms lavorano sulla FRASE intera, non su questi token, quindi
+# non vengono toccate (es. la frase "telefono solo" resta riconosciuta).
+STOP_WORDS = STOP_WORDS | {
+    "come", "cosa", "che", "chi", "non", "mi", "ti", "si", "ci", "ne", "ho", "ha",
+    "hai", "hanno", "sono", "sei", "siamo", "del", "dello", "della", "dei", "degli",
+    "delle", "al", "allo", "alla", "ai", "agli", "alle", "dal", "dalla", "nel",
+    "nello", "nella", "nei", "negli", "nelle", "sul", "sulla", "sui", "su",
+    "questo", "questa", "quello", "quella", "molto", "sempre", "dove", "anche",
+    "più", "così", "solo", "già", "ancora", "mio", "mia", "tuo", "tua", "suo", "sua",
+}
+
 
 def evaluate_chat_policy(question: str) -> str | None:
     normalized = " ".join(question.lower().split())
@@ -351,24 +372,130 @@ def chunk_text(
     return chunks
 
 
+# --- Recupero IBRIDO: lessicale (BM25) + semantico (embeddings locali) --------
+#
+#  - BM25 pesa i termini RARI e critici ("1522", "arma", "gravidanza") molto più
+#    di quelli comuni: chi azzecca la parola che conta batte chi condivide tante
+#    parole generiche. Meglio del vecchio conteggio piatto.
+#  - Gli embeddings colgono il SENSO anche con parole diverse ("mi toglie il
+#    telefono" ~ "telefono sottratto / controllo coercitivo").
+#  - I _domain_boost (routing di sicurezza) restano DOMINANTI (×100): nessun
+#    punteggio semantico può scavalcare un instradamento d'emergenza.
+#
+# Tutto locale/offline (model2vec, puro numpy): i dati sensibili non escono. Se
+# il modello non c'è, si degrada con eleganza al solo lessicale (BM25 + boost).
+BM25_K1 = 1.5
+BM25_B = 0.75
+W_LEXICAL = 40.0        # peso del BM25 normalizzato (0..1)
+W_SEMANTIC = 40.0       # peso del coseno (0..1)  -> max rifinitura 80 < 100
+BOOST_WEIGHT = 100.0    # i boost di sicurezza dominano
+SEMANTIC_MIN = 0.20     # sotto questa soglia il match semantico è rumore
+BM25_SAT = 4.0          # saturazione: un match debole resta debole (no /max)
+EMBED_MODEL = os.getenv("EMBED_MODEL", "minishlab/potion-multilingual-128M")
+
+_bm25_cache: dict | None = None
+_semantic_cache: dict | None = None
+
+
+def _bm25_index() -> dict:
+    global _bm25_cache
+    if _bm25_cache is None:
+        docs = [_tok_list(chunk.text) for chunk in _default_chunks()]
+        n_docs = len(docs)
+        document_frequency: Counter = Counter()
+        for tokens in docs:
+            for term in set(tokens):
+                document_frequency[term] += 1
+        idf = {
+            term: math.log(1 + (n_docs - freq + 0.5) / (freq + 0.5))
+            for term, freq in document_frequency.items()
+        }
+        lengths = [len(tokens) for tokens in docs]
+        _bm25_cache = {
+            "idf": idf,
+            "tf": [Counter(tokens) for tokens in docs],
+            "len": lengths,
+            "avg_len": (sum(lengths) / n_docs) if n_docs else 0.0,
+        }
+    return _bm25_cache
+
+
+def _bm25_score(query_terms: set[str], doc_index: int) -> float:
+    index = _bm25_index()
+    tf = index["tf"][doc_index]
+    doc_len = index["len"][doc_index]
+    avg_len = index["avg_len"] or 1.0
+    score = 0.0
+    for term in query_terms:
+        freq = tf.get(term, 0)
+        if not freq:
+            continue
+        idf = index["idf"].get(term, 0.0)
+        score += idf * (freq * (BM25_K1 + 1)) / (
+            freq + BM25_K1 * (1 - BM25_B + BM25_B * doc_len / avg_len)
+        )
+    return score
+
+
+def _semantic_index() -> dict:
+    # Carica il modello e gli embeddings dei chunk UNA volta. Se qualcosa manca
+    # (modello non scaricato, dipendenza assente) ritorna {} e si resta lessicali.
+    global _semantic_cache
+    if _semantic_cache is None:
+        # Spento di DEFAULT: su questo triage gli embedding statici a volte
+        # instradano un contesto SBAGLIATO dove il lessicale direbbe onestamente
+        # "nessun contesto" (più sicuro). Restano attivabili per sperimentare con
+        # EMBED_ENABLED=true (meglio con un modello transformer, non statico).
+        if os.getenv("EMBED_ENABLED", "false").lower() not in ("1", "true", "yes"):
+            _semantic_cache = {}
+            return _semantic_cache
+        try:
+            import numpy as np
+            from model2vec import StaticModel
+
+            model = StaticModel.from_pretrained(EMBED_MODEL)
+            matrix = model.encode([chunk.text for chunk in _default_chunks()])
+            matrix = matrix / (np.linalg.norm(matrix, axis=1, keepdims=True) + 1e-9)
+            _semantic_cache = {"model": model, "matrix": matrix, "np": np}
+        except Exception:
+            _semantic_cache = {}
+    return _semantic_cache
+
+
+def _semantic_scores(question: str):
+    index = _semantic_index()
+    if not index:
+        return None
+    np = index["np"]
+    q = index["model"].encode([question])[0]
+    q = q / (np.linalg.norm(q) + 1e-9)
+    return index["matrix"] @ q  # coseno per ogni chunk (vettori già normalizzati)
+
+
 def retrieve_chunks(question: str, top_k: int = 3) -> list[RetrievedChunk]:
     normalized = " ".join(question.lower().split())
     query_terms = _expand_query_terms(normalized, _tokenize(question))
     chunks = _default_chunks()
+
+    lexical = [_bm25_score(query_terms, i) for i in range(len(chunks))]
+    semantic = _semantic_scores(question)  # array oppure None (fallback lessicale)
+
     ranked_chunks: list[RetrievedChunk] = []
+    for i, chunk in enumerate(chunks):
+        boost = _domain_boost(normalized, chunk.source_name)
+        # Normalizzazione SATURANTE (non /max): bm25 basso -> vicino a 0,
+        # bm25 alto -> vicino a 1. Un singolo termine banale non diventa "perfetto".
+        bm25_norm = lexical[i] / (lexical[i] + BM25_SAT)
+        cosine = float(semantic[i]) if semantic is not None else 0.0
 
-    for chunk in chunks:
-        chunk_terms = _tokenize(chunk.text)
-        score = sum(1 for term in query_terms if term in chunk_terms)
-        score += _domain_boost(normalized, chunk.source_name)
+        # Candidato solo se instradato dalla sicurezza, o combacia a parole, o è
+        # semanticamente vicino sopra soglia. Sotto tutto ciò è rumore e NON entra:
+        # così su messaggi fuori tema resta la risposta di ripiego sicura.
+        if boost <= 0 and bm25_norm <= 0 and cosine < SEMANTIC_MIN:
+            continue
 
-        if score > 0:
-            ranked_chunks.append(
-                RetrievedChunk(
-                    **chunk.model_dump(),
-                    score=score,
-                )
-            )
+        final = boost * BOOST_WEIGHT + W_LEXICAL * bm25_norm + W_SEMANTIC * max(0.0, cosine)
+        ranked_chunks.append(RetrievedChunk(**chunk.model_dump(), score=round(final, 4)))
 
     ranked_chunks.sort(key=lambda chunk: (-chunk.score, chunk.source_name, chunk.chunk_index))
     return ranked_chunks[:top_k]
@@ -437,9 +564,14 @@ def _default_chunks() -> list[KnowledgeChunk]:
     return chunks
 
 
+def _tok_list(text: str) -> list[str]:
+    # Lista (con ripetizioni) per BM25, che ha bisogno delle frequenze dei termini.
+    return [t for t in _WORD_RE.findall(text.lower()) if len(t) >= 2 and t not in STOP_WORDS]
+
+
 def _tokenize(text: str) -> set[str]:
-    terms = re.findall(r"[a-zA-Z0-9]+", text.lower())
-    return {term for term in terms if len(term) >= 2 and term not in STOP_WORDS}
+    # Insieme, per la logica di espansione/policy che ragiona per presenza.
+    return set(_tok_list(text))
 
 
 def _expand_query_terms(normalized: str, terms: set[str]) -> set[str]:
